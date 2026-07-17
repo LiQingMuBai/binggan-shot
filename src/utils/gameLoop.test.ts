@@ -108,6 +108,8 @@ describe("gameLoop", () => {
             radius: 3,
             pattern: "fireball",
             monster: "zombie",
+            ttlMs: 3000,
+            ricochetsLeft: 4,
             damage: 18,
           },
         ],
@@ -132,6 +134,35 @@ describe("gameLoop", () => {
 
     expect(nextRuntime.enemyProjectiles.length).toBeGreaterThan(0);
     expect(nextRuntime.enemyProjectiles.every((projectile) => projectile.monster)).toBe(true);
+  });
+
+  it("ricochets monster projectiles off the arena walls", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        enemyProjectiles: [
+          {
+            id: "bounce-left",
+            x: 5.2,
+            y: 46,
+            vx: -42,
+            vy: -36,
+            radius: 2.6,
+            pattern: "fireball",
+            monster: "creeper",
+            ttlMs: 3000,
+            ricochetsLeft: 4,
+            damage: 12,
+          },
+        ],
+      },
+      32,
+    );
+
+    expect(nextRuntime.enemyProjectiles).toHaveLength(1);
+    expect(nextRuntime.enemyProjectiles[0].vx).toBeGreaterThan(0);
+    expect(nextRuntime.enemyProjectiles[0].ricochetsLeft).toBe(3);
   });
 
   it("collects sun fragments and grants bonus score", () => {

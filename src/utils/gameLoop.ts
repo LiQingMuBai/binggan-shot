@@ -23,6 +23,8 @@ export interface EnemyProjectileState {
   radius: number;
   pattern: EnemyPattern;
   monster: EnemyMonsterKind;
+  ttlMs: number;
+  ricochetsLeft: number;
   damage: number;
 }
 
@@ -318,40 +320,74 @@ function getAttackInterval(stage: SunStage) {
   return 760;
 }
 
+function createEnemyProjectile(
+  runtime: GameRuntime,
+  options: {
+    id: string;
+    x: number;
+    y: number;
+    angleRad: number;
+    speed: number;
+    radius: number;
+    pattern: EnemyPattern;
+    monster: EnemyMonsterKind;
+    damage: number;
+  },
+): EnemyProjectileState {
+  return {
+    id: options.id,
+    x: round(options.x),
+    y: round(options.y),
+    vx: round(Math.cos(options.angleRad) * options.speed),
+    vy: round(Math.sin(options.angleRad) * options.speed),
+    radius: round(options.radius),
+    pattern: options.pattern,
+    monster: options.monster,
+    ttlMs: options.pattern === "pulse" ? 4600 : 4000 + runtime.sunStage * 260,
+    ricochetsLeft: options.pattern === "pulse" ? 8 : 6 + runtime.sunStage,
+    damage: options.damage,
+  };
+}
+
 function createEnemyVolley(runtime: GameRuntime): EnemyProjectileState[] {
   const sunVisual = getSunVisual(runtime);
   const spreadSeed = Math.sin(runtime.elapsedMs / 190 + runtime.sunStage * 1.7);
-  const tracking = (runtime.playerX - sunVisual.x) * 0.38;
+  const baseAngle = Math.atan2(PLAYER_Y - sunVisual.y, runtime.playerX - sunVisual.x);
+  const angleCycle = Math.floor(runtime.elapsedMs / 420) % 4;
+  const primaryOffsets = [-0.42, 0.42, -2.08, 2.08];
+  const sideOffsets = [1.2, -1.2, 2.34, -2.34];
   const primaryMonster: EnemyMonsterKind =
     runtime.sunStage === 1 ? "zombie" : runtime.sunStage === 2 ? "skeleton" : "creeper";
+  const primaryAngle = baseAngle + primaryOffsets[angleCycle] + spreadSeed * 0.18;
 
-  const primary: EnemyProjectileState = {
+  const primary = createEnemyProjectile(runtime, {
     id: `fireball-${runtime.elapsedMs}`,
-    x: round(sunVisual.x + spreadSeed * 3),
-    y: round(sunVisual.y + 2),
-    vx: round(tracking * 0.18),
-    vy: round(22 + runtime.sunStage * 5.5),
-    radius: round(2 + runtime.sunStage * 0.45),
+    x: sunVisual.x + Math.cos(primaryAngle) * (sunVisual.radius * 0.48),
+    y: sunVisual.y + Math.sin(primaryAngle) * (sunVisual.radius * 0.48),
+    angleRad: primaryAngle,
+    speed: 28 + runtime.sunStage * 4.4,
+    radius: 2 + runtime.sunStage * 0.45,
     pattern: "fireball",
     monster: primaryMonster,
     damage: 10 + runtime.sunStage * 4,
-  };
+  });
 
   if (runtime.sunStage === 1) {
     return [primary];
   }
 
-  const side: EnemyProjectileState = {
+  const sideAngle = baseAngle + sideOffsets[angleCycle] - spreadSeed * 0.22;
+  const side = createEnemyProjectile(runtime, {
     id: `side-${runtime.elapsedMs}`,
-    x: round(sunVisual.x - spreadSeed * 10),
-    y: round(sunVisual.y + 1.5),
-    vx: round((-tracking + spreadSeed * 9) * 0.12),
-    vy: round(18 + runtime.sunStage * 4.5),
-    radius: round(1.8 + runtime.sunStage * 0.35),
+    x: sunVisual.x + Math.cos(sideAngle) * (sunVisual.radius * 0.56),
+    y: sunVisual.y + Math.sin(sideAngle) * (sunVisual.radius * 0.56),
+    angleRad: sideAngle,
+    speed: 24 + runtime.sunStage * 4.2,
+    radius: 1.8 + runtime.sunStage * 0.35,
     pattern: runtime.sunStage === 3 ? "pulse" : "fireball",
     monster: runtime.sunStage === 3 ? "slime" : runtime.sunStage === 2 ? "spider" : "creeper",
     damage: runtime.sunStage === 3 ? 18 : 9,
-  };
+  });
 
   return [primary, side];
 }
@@ -632,6 +668,7 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
       ...createEnemyVolley(nextState),
     ];
     nextState.attackCooldownMs = getAttackInterval(nextState.sunStage);
+    message = nextState.sunStage === 3 ? "太阳放出四散反弹的怪物潮。" : "太阳吐出会乱撞的怪物。";
   }
 
   const remainingEnemyProjectiles: EnemyProjectileState[] = [];
@@ -643,27 +680,67 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
       ...projectile,
       x: projectile.x + (projectile.vx * stepMs) / 1000,
       y: projectile.y + (projectile.vy * stepMs) / 1000,
+      ttlMs: projectile.ttlMs - stepMs,
     };
 
+    if (movedProjectile.ttlMs <= 0) {
+      return;
+    }
+
+    const minX = 5 + movedProjectile.radius * 0.45;
+    const maxX = STAGE_WIDTH - 5 - movedProjectile.radius * 0.45;
+    const minY = 7 + movedProjectile.radius * 0.45;
+    const maxY = STAGE_HEIGHT - 6 - movedProjectile.radius * 0.45;
+    let reflectedProjectile = movedProjectile;
+    let ricocheted = false;
+
+    if (reflectedProjectile.x <= minX || reflectedProjectile.x >= maxX) {
+      reflectedProjectile = {
+        ...reflectedProjectile,
+        x: clamp(reflectedProjectile.x, minX, maxX),
+        vx: round(-reflectedProjectile.vx * 0.98),
+        ricochetsLeft: reflectedProjectile.ricochetsLeft - 1,
+      };
+      ricocheted = true;
+    }
+
+    if (reflectedProjectile.y <= minY || reflectedProjectile.y >= maxY) {
+      reflectedProjectile = {
+        ...reflectedProjectile,
+        y: clamp(reflectedProjectile.y, minY, maxY),
+        vy: round(-reflectedProjectile.vy * 0.98),
+        ricochetsLeft: reflectedProjectile.ricochetsLeft - 1,
+      };
+      ricocheted = true;
+    }
+
+    if (reflectedProjectile.ricochetsLeft < 0) {
+      return;
+    }
+
     const hitPlayer =
-      getProjectileDistance(movedProjectile.x, movedProjectile.y, nextState.playerX, PLAYER_Y) <=
-      PLAYER_RADIUS + movedProjectile.radius + (movedProjectile.pattern === "pulse" ? 3.5 : 0);
+      getProjectileDistance(reflectedProjectile.x, reflectedProjectile.y, nextState.playerX, PLAYER_Y) <=
+      PLAYER_RADIUS + reflectedProjectile.radius + (reflectedProjectile.pattern === "pulse" ? 3.5 : 0);
 
     if (hitPlayer) {
-      playerHp = Math.max(0, playerHp - movedProjectile.damage);
+      playerHp = Math.max(0, playerHp - reflectedProjectile.damage);
       hitsTaken += 1;
       nextState.combo = 0;
       nextState.screenShakeMs = 320;
       nextState.impactMs = 220;
       message =
-        movedProjectile.pattern === "pulse"
-          ? "日冕脉冲命中，立刻横移。"
-          : "火球擦中炮台，别停。";
+        reflectedProjectile.pattern === "pulse"
+          ? "反弹怪潮撞上炮台，立刻换位。"
+          : "乱窜怪物擦中炮台，别停。";
       return;
     }
 
-    if (movedProjectile.y < STAGE_HEIGHT + 10 && movedProjectile.x > -12 && movedProjectile.x < STAGE_WIDTH + 12) {
-      remainingEnemyProjectiles.push(movedProjectile);
+    if (ricocheted && reflectedProjectile.pattern === "pulse") {
+      message = "怪物在四周反弹，注意它们的回弹路线。";
+    }
+
+    if (reflectedProjectile.ttlMs > 0) {
+      remainingEnemyProjectiles.push(reflectedProjectile);
     }
   });
 
