@@ -1,0 +1,323 @@
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Manrope:wght@400;500;600;700;800&family=Press+Start+2P&family=Syncopate:wght@400;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-family: "Manrope", "Noto Sans SC", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #040611;
+  color: #f6f1ea;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(86, 144, 255, 0.1) 0 24%, rgba(21, 30, 63, 0.2) 24% 25%, transparent 25%),
+    linear-gradient(180deg, rgba(255, 159, 81, 0.08) 0 56%, rgba(13, 18, 37, 0.2) 56% 57%, transparent 57%),
+    linear-gradient(180deg, #122447 0%, #0b1830 46%, #1d120c 46%, #120b09 100%);
+  image-rendering: pixelated;
+}
+
+button {
+  cursor: pointer;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer base {
+  * {
+    @apply border-slate-200/10;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Cinzel", "Noto Serif SC", serif;
+  }
+
+  .font-ui {
+    font-family: "Syncopate", "Noto Sans SC", sans-serif;
+  }
+
+  .font-pixel {
+    font-family: "Press Start 2P", "Noto Sans SC", sans-serif;
+    letter-spacing: 0.04em;
+  }
+}
+
+.voxel-panel {
+  border-radius: 0;
+  border: 4px solid rgba(17, 10, 5, 0.95);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 16%),
+    linear-gradient(180deg, rgba(49, 30, 16, 0.96), rgba(22, 13, 8, 0.96));
+  box-shadow:
+    inset 0 4px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.28),
+    0 0 0 4px rgba(108, 69, 34, 0.4),
+    0 18px 0 rgba(0, 0, 0, 0.24);
+}
+
+.voxel-card {
+  border-radius: 0;
+  border: 3px solid rgba(17, 10, 5, 0.92);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 18%),
+    linear-gradient(180deg, rgba(86, 56, 30, 0.96), rgba(33, 20, 11, 0.96));
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+}
+
+.voxel-chip {
+  border-radius: 0;
+  border: 3px solid rgba(17, 10, 5, 0.9);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.24);
+}
+
+.voxel-button {
+  border-radius: 0;
+  border: 4px solid rgba(31, 18, 8, 0.96);
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.24),
+    0 6px 0 rgba(38, 22, 10, 0.8);
+}
+
+.battlefield-sky {
+  background:
+    linear-gradient(180deg, rgba(144, 200, 255, 0.1) 0 11%, transparent 11%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 3%, transparent 3% 97%, rgba(0, 0, 0, 0.08) 97%),
+    linear-gradient(180deg, #4b84c8 0%, #2c4f84 48%, #68411b 48%, #3b2510 100%);
+  background-size: 100% 76px, 44px 44px, 100% 100%;
+}
+
+.battlefield-ground {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 3%, transparent 3% 97%, rgba(0, 0, 0, 0.2) 97%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0 4%, transparent 4% 96%, rgba(0, 0, 0, 0.3) 96%),
+    linear-gradient(180deg, #7b4b20, #5b3617);
+  background-size: 52px 52px, 52px 52px, 100% 100%;
+}
+
+@keyframes solarPulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    filter: saturate(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.05);
+    filter: saturate(1.2);
+  }
+}
+
+@keyframes heatDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, 8px, 0) scale(1.06);
+  }
+}
+
+@keyframes noiseMove {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-2%, 2%, 0);
+  }
+  100% {
+    transform: translate3d(1%, -2%, 0);
+  }
+}
+
+@keyframes heroIdle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes capeSway {
+  0%,
+  100% {
+    transform: translateX(-30%) rotate(4deg);
+  }
+  50% {
+    transform: translateX(-34%) rotate(-3deg);
+  }
+}
+
+@keyframes cloudFloat {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-2px);
+  }
+}
+
+@keyframes pixelBirdGlide {
+  0% {
+    transform: translateX(-12px) translateY(0) scale(1);
+  }
+  25% {
+    transform: translateX(10px) translateY(-3px) scale(1);
+  }
+  50% {
+    transform: translateX(24px) translateY(1px) scale(1);
+  }
+  75% {
+    transform: translateX(8px) translateY(-2px) scale(-1, 1);
+  }
+  100% {
+    transform: translateX(-12px) translateY(0) scale(-1, 1);
+  }
+}
+
+@keyframes pixelCatPace {
+  0% {
+    transform: translateX(-12px) translateY(0) scale(1);
+  }
+  35% {
+    transform: translateX(10px) translateY(0) scale(1);
+  }
+  50% {
+    transform: translateX(14px) translateY(-1px) scale(1);
+  }
+  65% {
+    transform: translateX(10px) translateY(0) scale(-1, 1);
+  }
+  100% {
+    transform: translateX(-12px) translateY(0) scale(-1, 1);
+  }
+}
+
+@keyframes pixelSeagullGlide {
+  0% {
+    transform: translateX(-16px) translateY(0) scale(1);
+  }
+  30% {
+    transform: translateX(10px) translateY(-4px) scale(1);
+  }
+  60% {
+    transform: translateX(22px) translateY(2px) scale(1);
+  }
+  100% {
+    transform: translateX(-16px) translateY(0) scale(-1, 1);
+  }
+}
+
+@keyframes pixelMonkeySwing {
+  0% {
+    transform: translateX(-4px) translateY(0) scale(1);
+  }
+  25% {
+    transform: translateX(2px) translateY(-2px) scale(1);
+  }
+  50% {
+    transform: translateX(6px) translateY(0) scale(1);
+  }
+  75% {
+    transform: translateX(2px) translateY(-1px) scale(-1, 1);
+  }
+  100% {
+    transform: translateX(-4px) translateY(0) scale(-1, 1);
+  }
+}
+
+.solar-core {
+  animation: solarPulse 3.4s ease-in-out infinite;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 8%, transparent 8% 92%, rgba(0, 0, 0, 0.22) 92%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0 8%, transparent 8% 92%, rgba(0, 0, 0, 0.22) 92%),
+    linear-gradient(180deg, #ffdf71 0%, #f5a53d 36%, #e26a1b 68%, #8a2f07 100%);
+  border-radius: 0;
+  border: 4px solid rgba(79, 32, 4, 0.9);
+  box-shadow:
+    inset 0 4px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -5px 0 rgba(0, 0, 0, 0.26),
+    0 0 0 4px rgba(136, 69, 24, 0.42),
+    0 0 42px rgba(255, 158, 64, 0.34);
+}
+
+.heat-veil {
+  animation: heatDrift 6s ease-in-out infinite;
+  background:
+    linear-gradient(180deg, rgba(255, 188, 117, 0.18), rgba(255, 151, 88, 0.05) 55%, transparent 100%),
+    linear-gradient(90deg, rgba(255, 214, 140, 0.06) 0 50%, rgba(0, 0, 0, 0.04) 50% 100%);
+  background-size: 100% 100%, 16px 16px;
+  filter: blur(4px);
+}
+
+.solar-noise {
+  animation: noiseMove 8s linear infinite;
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px);
+  background-size: 56px 56px, 56px 56px;
+}
+
+.hero-archer {
+  animation: heroIdle 2.6s steps(2, end) infinite;
+  transform-origin: center bottom;
+  image-rendering: pixelated;
+}
+
+.hero-cape {
+  animation: capeSway 2.1s steps(2, end) infinite;
+  transform-origin: top center;
+}
+
+.hero-cloud {
+  animation: cloudFloat 2.4s steps(2, end) infinite;
+  transform-origin: center bottom;
+  image-rendering: pixelated;
+}
+
+.pixel-bird {
+  animation: pixelBirdGlide 20s steps(4, end) infinite;
+  transform-origin: center;
+}
+
+.pixel-cat {
+  animation: pixelCatPace 16s steps(6, end) infinite;
+  transform-origin: center bottom;
+}
+
+.pixel-sheep,
+.pixel-deer {
+  animation: pixelCatPace 24s steps(6, end) infinite;
+  transform-origin: center bottom;
+}
+
+.pixel-seagull {
+  animation: pixelSeagullGlide 26s steps(5, end) infinite;
+  transform-origin: center;
+}
+
+.pixel-monkey {
+  animation: pixelMonkeySwing 18s steps(4, end) infinite;
+  transform-origin: center bottom;
+}
