@@ -80,6 +80,12 @@ const pixelMonkeys = [
   { left: 79, bottom: 23, scale: 0.9, duration: "20s", delay: "-14s" },
 ];
 
+const BACKGROUND_DECOR_SCALE = 1.5;
+
+function getDecorScale(scale: number) {
+  return `scale(${scale * BACKGROUND_DECOR_SCALE})`;
+}
+
 export default function Battlefield({
   runtime,
   onAim,
@@ -155,21 +161,28 @@ export default function Battlefield({
           {pixelBirds.map((bird, index) => (
             <div
               key={`bird-${index}`}
-              className="pixel-bird absolute"
+              className="absolute"
               style={{
                 left: `${bird.left}%`,
                 top: `${bird.top}%`,
-                transform: `scale(${bird.scale})`,
-                animationDuration: bird.duration,
-                animationDelay: bird.delay,
+                transform: getDecorScale(bird.scale),
+                transformOrigin: "center",
               }}
             >
-              <div className="relative h-6 w-8">
-                <div className="absolute left-0 top-2 h-2 w-3 bg-[#dfe8f2]" />
-                <div className="absolute left-2 top-1 h-2 w-3 bg-[#f8fafc]" />
-                <div className="absolute right-1 top-2 h-2 w-3 bg-[#c3ceda]" />
-                <div className="absolute left-3 top-3 h-2 w-3 bg-[#7a8793]" />
-                <div className="absolute right-0 top-3 h-[2px] w-2 bg-[#f2b870]" />
+              <div
+                className="pixel-bird relative"
+                style={{
+                  animationDuration: bird.duration,
+                  animationDelay: bird.delay,
+                }}
+              >
+                <div className="relative h-6 w-8">
+                  <div className="absolute left-0 top-2 h-2 w-3 bg-[#dfe8f2]" />
+                  <div className="absolute left-2 top-1 h-2 w-3 bg-[#f8fafc]" />
+                  <div className="absolute right-1 top-2 h-2 w-3 bg-[#c3ceda]" />
+                  <div className="absolute left-3 top-3 h-2 w-3 bg-[#7a8793]" />
+                  <div className="absolute right-0 top-3 h-[2px] w-2 bg-[#f2b870]" />
+                </div>
               </div>
             </div>
           ))}
@@ -179,21 +192,28 @@ export default function Battlefield({
           {pixelSeagulls.map((bird, index) => (
             <div
               key={`seagull-${index}`}
-              className="pixel-seagull absolute"
+              className="absolute"
               style={{
                 left: `${bird.left}%`,
                 top: `${bird.top}%`,
-                transform: `scale(${bird.scale})`,
-                animationDuration: bird.duration,
-                animationDelay: bird.delay,
+                transform: getDecorScale(bird.scale),
+                transformOrigin: "center",
               }}
             >
-              <div className="relative h-7 w-10">
-                <div className="absolute left-0 top-3 h-[2px] w-4 bg-[#f8fafc]" />
-                <div className="absolute left-2 top-2 h-[2px] w-5 bg-[#ffffff]" />
-                <div className="absolute right-1 top-3 h-[2px] w-4 bg-[#dce6ef]" />
-                <div className="absolute left-4 top-4 h-[2px] w-2 bg-[#6f7d8b]" />
-                <div className="absolute right-0 top-4 h-[2px] w-2 bg-[#f2c97d]" />
+              <div
+                className="pixel-seagull relative"
+                style={{
+                  animationDuration: bird.duration,
+                  animationDelay: bird.delay,
+                }}
+              >
+                <div className="relative h-7 w-10">
+                  <div className="absolute left-0 top-3 h-[2px] w-4 bg-[#f8fafc]" />
+                  <div className="absolute left-2 top-2 h-[2px] w-5 bg-[#ffffff]" />
+                  <div className="absolute right-1 top-3 h-[2px] w-4 bg-[#dce6ef]" />
+                  <div className="absolute left-4 top-4 h-[2px] w-2 bg-[#6f7d8b]" />
+                  <div className="absolute right-0 top-4 h-[2px] w-2 bg-[#f2c97d]" />
+                </div>
               </div>
             </div>
           ))}
@@ -207,7 +227,7 @@ export default function Battlefield({
               style={{
                 left: `${tree.left}%`,
                 bottom: `${tree.bottom}%`,
-                transform: `scale(${tree.scale})`,
+                transform: getDecorScale(tree.scale),
                 transformOrigin: "bottom center",
               }}
             >
@@ -233,23 +253,30 @@ export default function Battlefield({
           {pixelMonkeys.map((monkey, index) => (
             <div
               key={`monkey-${index}`}
-              className="pixel-monkey absolute"
+              className="absolute"
               style={{
                 left: `${monkey.left}%`,
                 bottom: `${monkey.bottom}%`,
-                transform: `scale(${monkey.scale})`,
-                animationDuration: monkey.duration,
-                animationDelay: monkey.delay,
+                transform: getDecorScale(monkey.scale),
+                transformOrigin: "center bottom",
               }}
             >
-              <div className="relative h-10 w-10">
-                <div className="absolute bottom-2 left-2 h-5 w-5 bg-[#6c4728]" />
-                <div className="absolute bottom-5 left-4 h-3 w-3 bg-[#7d5530]" />
-                <div className="absolute bottom-6 left-5 h-1 w-1 bg-[#f4dfbf]" />
-                <div className="absolute bottom-1 left-1 h-2 w-1 bg-[#6c4728]" />
-                <div className="absolute bottom-1 left-6 h-2 w-1 bg-[#6c4728]" />
-                <div className="absolute bottom-4 right-0 h-1 w-4 bg-[#6c4728]" />
-                <div className="absolute bottom-3 right-3 h-1 w-3 bg-[#6c4728]" />
+              <div
+                className="pixel-monkey relative"
+                style={{
+                  animationDuration: monkey.duration,
+                  animationDelay: monkey.delay,
+                }}
+              >
+                <div className="relative h-10 w-10">
+                  <div className="absolute bottom-2 left-2 h-5 w-5 bg-[#6c4728]" />
+                  <div className="absolute bottom-5 left-4 h-3 w-3 bg-[#7d5530]" />
+                  <div className="absolute bottom-6 left-5 h-1 w-1 bg-[#f4dfbf]" />
+                  <div className="absolute bottom-1 left-1 h-2 w-1 bg-[#6c4728]" />
+                  <div className="absolute bottom-1 left-6 h-2 w-1 bg-[#6c4728]" />
+                  <div className="absolute bottom-4 right-0 h-1 w-4 bg-[#6c4728]" />
+                  <div className="absolute bottom-3 right-3 h-1 w-3 bg-[#6c4728]" />
+                </div>
               </div>
             </div>
           ))}
@@ -263,7 +290,7 @@ export default function Battlefield({
               style={{
                 left: `${bush.left}%`,
                 bottom: `${bush.bottom}%`,
-                transform: `scale(${bush.scale})`,
+                transform: getDecorScale(bush.scale),
                 transformOrigin: "bottom center",
               }}
             >
@@ -285,7 +312,7 @@ export default function Battlefield({
               style={{
                 left: `${rock.left}%`,
                 bottom: `${rock.bottom}%`,
-                transform: `scale(${rock.scale})`,
+                transform: getDecorScale(rock.scale),
                 transformOrigin: "bottom center",
               }}
             >
@@ -307,7 +334,7 @@ export default function Battlefield({
               style={{
                 left: `${flower.left}%`,
                 bottom: `${flower.bottom}%`,
-                transform: `scale(${flower.scale})`,
+                transform: getDecorScale(flower.scale),
                 transformOrigin: "bottom center",
               }}
             >
@@ -329,23 +356,30 @@ export default function Battlefield({
           {pixelSheep.map((sheep, index) => (
             <div
               key={`sheep-${index}`}
-              className="pixel-sheep absolute"
+              className="absolute"
               style={{
                 left: `${sheep.left}%`,
                 bottom: `${sheep.bottom}%`,
-                transform: `scale(${sheep.scale})`,
-                animationDuration: sheep.duration,
-                animationDelay: sheep.delay,
+                transform: getDecorScale(sheep.scale),
+                transformOrigin: "center bottom",
               }}
             >
-              <div className="relative h-9 w-14">
-                <div className="absolute bottom-2 left-3 h-4 w-8 bg-[#f6f3ea]" />
-                <div className="absolute bottom-3 left-1 h-3 w-4 bg-[#d9d2c4]" />
-                <div className="absolute bottom-4 left-5 h-1 w-1 bg-white/70" />
-                <div className="absolute bottom-0 left-4 h-2 w-1 bg-[#4c3a29]" />
-                <div className="absolute bottom-0 left-7 h-2 w-1 bg-[#4c3a29]" />
-                <div className="absolute bottom-0 left-10 h-2 w-1 bg-[#4c3a29]" />
-                <div className="absolute bottom-0 left-12 h-2 w-1 bg-[#4c3a29]" />
+              <div
+                className="pixel-sheep relative"
+                style={{
+                  animationDuration: sheep.duration,
+                  animationDelay: sheep.delay,
+                }}
+              >
+                <div className="relative h-9 w-14">
+                  <div className="absolute bottom-2 left-3 h-4 w-8 bg-[#f6f3ea]" />
+                  <div className="absolute bottom-3 left-1 h-3 w-4 bg-[#d9d2c4]" />
+                  <div className="absolute bottom-4 left-5 h-1 w-1 bg-white/70" />
+                  <div className="absolute bottom-0 left-4 h-2 w-1 bg-[#4c3a29]" />
+                  <div className="absolute bottom-0 left-7 h-2 w-1 bg-[#4c3a29]" />
+                  <div className="absolute bottom-0 left-10 h-2 w-1 bg-[#4c3a29]" />
+                  <div className="absolute bottom-0 left-12 h-2 w-1 bg-[#4c3a29]" />
+                </div>
               </div>
             </div>
           ))}
@@ -353,25 +387,32 @@ export default function Battlefield({
           {pixelDeer.map((deer, index) => (
             <div
               key={`deer-${index}`}
-              className="pixel-deer absolute"
+              className="absolute"
               style={{
                 left: `${deer.left}%`,
                 bottom: `${deer.bottom}%`,
-                transform: `scale(${deer.scale})`,
-                animationDuration: deer.duration,
-                animationDelay: deer.delay,
+                transform: getDecorScale(deer.scale),
+                transformOrigin: "center bottom",
               }}
             >
-              <div className="relative h-10 w-16">
-                <div className="absolute bottom-2 left-4 h-4 w-8 bg-[#b97a45]" />
-                <div className="absolute bottom-4 left-1 h-4 w-4 bg-[#c68954]" />
-                <div className="absolute bottom-7 left-2 h-3 w-1 bg-[#f2d4a7]" />
-                <div className="absolute bottom-7 left-4 h-3 w-1 bg-[#f2d4a7]" />
-                <div className="absolute bottom-5 left-8 h-1 w-1 bg-white/30" />
-                <div className="absolute bottom-0 left-5 h-2 w-1 bg-[#6c4728]" />
-                <div className="absolute bottom-0 left-8 h-2 w-1 bg-[#6c4728]" />
-                <div className="absolute bottom-0 left-10 h-2 w-1 bg-[#6c4728]" />
-                <div className="absolute bottom-0 left-13 h-2 w-1 bg-[#6c4728]" />
+              <div
+                className="pixel-deer relative"
+                style={{
+                  animationDuration: deer.duration,
+                  animationDelay: deer.delay,
+                }}
+              >
+                <div className="relative h-10 w-16">
+                  <div className="absolute bottom-2 left-4 h-4 w-8 bg-[#b97a45]" />
+                  <div className="absolute bottom-4 left-1 h-4 w-4 bg-[#c68954]" />
+                  <div className="absolute bottom-7 left-2 h-3 w-1 bg-[#f2d4a7]" />
+                  <div className="absolute bottom-7 left-4 h-3 w-1 bg-[#f2d4a7]" />
+                  <div className="absolute bottom-5 left-8 h-1 w-1 bg-white/30" />
+                  <div className="absolute bottom-0 left-5 h-2 w-1 bg-[#6c4728]" />
+                  <div className="absolute bottom-0 left-8 h-2 w-1 bg-[#6c4728]" />
+                  <div className="absolute bottom-0 left-10 h-2 w-1 bg-[#6c4728]" />
+                  <div className="absolute bottom-0 left-13 h-2 w-1 bg-[#6c4728]" />
+                </div>
               </div>
             </div>
           ))}
@@ -379,27 +420,34 @@ export default function Battlefield({
           {pixelCats.map((cat, index) => (
             <div
               key={`cat-${index}`}
-              className="pixel-cat absolute"
+              className="absolute"
               style={{
                 left: `${cat.left}%`,
                 bottom: `${cat.bottom}%`,
-                transform: `scale(${cat.scale})`,
-                animationDuration: cat.duration,
-                animationDelay: cat.delay,
+                transform: getDecorScale(cat.scale),
+                transformOrigin: "center bottom",
               }}
             >
-              <div className="relative h-9 w-14">
-                <div className="absolute bottom-1 left-3 h-4 w-8 bg-[#2f3138]" />
-                <div className="absolute bottom-3 left-1 h-4 w-4 bg-[#3d4048]" />
-                <div className="absolute bottom-5 left-1 h-2 w-1 bg-[#3d4048]" />
-                <div className="absolute bottom-5 left-4 h-2 w-1 bg-[#3d4048]" />
-                <div className="absolute bottom-2 left-4 h-1 w-1 bg-[#f5e7d1]" />
-                <div className="absolute bottom-0 left-4 h-2 w-1 bg-[#2f3138]" />
-                <div className="absolute bottom-0 left-8 h-2 w-1 bg-[#2f3138]" />
-                <div className="absolute bottom-0 left-10 h-2 w-1 bg-[#2f3138]" />
-                <div className="absolute bottom-0 left-2 h-2 w-1 bg-[#2f3138]" />
-                <div className="absolute bottom-4 right-0 h-1 w-5 bg-[#2f3138]" />
-                <div className="absolute bottom-5 right-4 h-1 w-3 bg-[#3d4048]" />
+              <div
+                className="pixel-cat relative"
+                style={{
+                  animationDuration: cat.duration,
+                  animationDelay: cat.delay,
+                }}
+              >
+                <div className="relative h-9 w-14">
+                  <div className="absolute bottom-1 left-3 h-4 w-8 bg-[#2f3138]" />
+                  <div className="absolute bottom-3 left-1 h-4 w-4 bg-[#3d4048]" />
+                  <div className="absolute bottom-5 left-1 h-2 w-1 bg-[#3d4048]" />
+                  <div className="absolute bottom-5 left-4 h-2 w-1 bg-[#3d4048]" />
+                  <div className="absolute bottom-2 left-4 h-1 w-1 bg-[#f5e7d1]" />
+                  <div className="absolute bottom-0 left-4 h-2 w-1 bg-[#2f3138]" />
+                  <div className="absolute bottom-0 left-8 h-2 w-1 bg-[#2f3138]" />
+                  <div className="absolute bottom-0 left-10 h-2 w-1 bg-[#2f3138]" />
+                  <div className="absolute bottom-0 left-2 h-2 w-1 bg-[#2f3138]" />
+                  <div className="absolute bottom-4 right-0 h-1 w-5 bg-[#2f3138]" />
+                  <div className="absolute bottom-5 right-4 h-1 w-3 bg-[#3d4048]" />
+                </div>
               </div>
             </div>
           ))}
