@@ -23,7 +23,7 @@ describe("SunStrikePage", () => {
     fireEvent.click(startButton);
 
     expect(screen.queryByRole("button", { name: "开始发射" })).not.toBeInTheDocument();
-    expect(screen.getByText("太阳核心")).toBeInTheDocument();
+    expect(screen.getByText("阿凡提")).toBeInTheDocument();
     expect(screen.getByTestId("battlefield")).toBeInTheDocument();
   });
 

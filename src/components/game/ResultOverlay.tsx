@@ -33,15 +33,15 @@ export default function ResultOverlay({
     <section className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/45 px-6 py-8 backdrop-blur-md">
       <div className="voxel-panel w-full max-w-2xl p-7">
         <p className="font-pixel text-[0.58rem] uppercase leading-5 text-stone-400">
-          {isVictory ? "Solar Collapse" : "Thermal Failure"}
+          {isVictory ? "Biscuit vs Afanti" : "Biscuit Down"}
         </p>
         <h2 className="mt-4 font-pixel text-xl uppercase leading-8 text-stone-100 md:text-2xl">
-          {isVictory ? "太阳已坠落" : "炮台损毁"}
+          {isVictory ? "饼干大战阿凡提" : "傻猫饼干倒下了"}
         </h2>
         <p className="mt-4 text-base leading-7 text-stone-300/82">
           {isVictory
-            ? "你在极限火力下完成了对日核的终结打击。"
-            : "太阳的热压打穿了外层护罩，但这轮数据已经足够你下一次反杀。"}
+            ? "你用极限火力完成了对阿凡提的终结打击。"
+            : "阿凡提的热压打穿了防线，但这轮数据已经足够傻猫饼干下一次反杀。"}
         </p>
 
         <div className="mt-7 grid gap-4 sm:grid-cols-4">

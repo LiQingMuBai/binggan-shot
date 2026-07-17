@@ -54,7 +54,7 @@ export default function HudPanel({ runtime }: HudPanelProps) {
             <div>
               <div className="flex items-center gap-2 text-stone-200">
                 <ShieldAlert className="h-4 w-4 text-orange-200" />
-                <span className="font-pixel text-[0.56rem] uppercase leading-5">太阳核心</span>
+                <span className="font-pixel text-[0.56rem] uppercase leading-5">阿凡提</span>
               </div>
               <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/8">
                 <div

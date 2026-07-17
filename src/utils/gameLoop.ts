@@ -119,9 +119,9 @@ const DEFAULT_RECORD: LocalRecord = {
 };
 
 const STAGE_MESSAGES: Record<SunStage, string> = {
-  1: "对准日核，稳住节奏。",
+  1: "对准阿凡提，稳住节奏。",
   2: "日冕暴走，火力加剧。",
-  3: "终焉之相，别让太阳先开口。",
+  3: "终焉之相，别让阿凡提先开口。",
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -220,7 +220,7 @@ export function createIdleRuntime(record: LocalRecord = DEFAULT_RECORD): GameRun
     accuracy: 0,
     impactMs: 0,
     screenShakeMs: 0,
-    message: "瞄准日核，准备发射。",
+    message: "瞄准阿凡提，准备发射。",
   };
 }
 
@@ -301,7 +301,7 @@ export function releaseCharge(runtime: GameRuntime): GameRuntime {
     shotsFired: runtime.shotsFired + projectiles.length,
     projectiles: [...runtime.projectiles, ...projectiles],
     message: isDoubleArrowActive
-      ? "双箭齐发，撕开日冕。"
+      ? "双箭齐发，压制阿凡提。"
       : charge > 70
         ? "满蓄力直击日冕。"
         : "箭矢已发射。",
@@ -572,7 +572,7 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
         ...createSkillPack(nextState, movedProjectile.x, movedProjectile.y, movedProjectile.damage),
       );
       scorePopups.push(createScorePopup(movedProjectile.x, movedProjectile.y, impactScore, "impact"));
-      message = combo > 5 ? `连击 ${combo}，熔核碎片正在坠落。` : "命中日核，太阳吐出碎片。";
+      message = combo > 5 ? `连击 ${combo}，熔核碎片正在坠落。` : "命中阿凡提，阿凡提吐出碎片。";
       return;
     }
 
@@ -668,7 +668,7 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
       ...createEnemyVolley(nextState),
     ];
     nextState.attackCooldownMs = getAttackInterval(nextState.sunStage);
-    message = nextState.sunStage === 3 ? "太阳放出四散反弹的怪物潮。" : "太阳吐出会乱撞的怪物。";
+    message = nextState.sunStage === 3 ? "阿凡提放出四散反弹的怪物潮。" : "阿凡提吐出会乱撞的怪物。";
   }
 
   const remainingEnemyProjectiles: EnemyProjectileState[] = [];
@@ -730,8 +730,8 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
       nextState.impactMs = 220;
       message =
         reflectedProjectile.pattern === "pulse"
-          ? "反弹怪潮撞上炮台，立刻换位。"
-          : "乱窜怪物擦中炮台，别停。";
+          ? "反弹怪潮撞上傻猫饼干，立刻换位。"
+          : "乱窜怪物擦中傻猫饼干，别停。";
       return;
     }
 
@@ -758,14 +758,14 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
     nextState.phase = "victory";
     nextState.impactMs = 520;
     nextState.screenShakeMs = 600;
-    nextState.message = "太阳坠落，战斗结束。";
+    nextState.message = "阿凡提倒下，战斗结束。";
     nextState.accuracy = updateAccuracy(nextState.shotsFired, nextState.shotsHit);
     return nextState;
   }
 
   if (nextState.playerHp <= 0) {
     nextState.phase = "defeat";
-    nextState.message = "炮台过热损毁，再试一次。";
+    nextState.message = "傻猫饼干过热倒下，再试一次。";
     nextState.accuracy = updateAccuracy(nextState.shotsFired, nextState.shotsHit);
   }
 

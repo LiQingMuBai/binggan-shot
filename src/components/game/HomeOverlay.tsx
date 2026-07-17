@@ -26,13 +26,13 @@ export default function HomeOverlay({
       <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[1.3fr_0.9fr]">
         <div className="voxel-panel p-8 backdrop-blur-sm">
           <p className="font-pixel text-[0.6rem] uppercase leading-6 text-amber-200/80">
-            Block Sun Raid
+            Biscuit vs Afanti
           </p>
           <h1 className="mt-5 max-w-3xl font-pixel text-3xl uppercase leading-[1.2] text-stone-100 md:text-5xl">
-            射太阳
+            饼干大战阿凡提
           </h1>
           <p className="mt-6 max-w-2xl text-sm leading-7 text-stone-300/82 md:text-base">
-            在方块天空下操控后羿，拉弓击穿像素化日核。太阳会随着血量降低进入更狂暴的阶段，
+            在方块天空下操控傻猫饼干，拉弓压制像素化的阿凡提。阿凡提会随着血量降低进入更狂暴的阶段，
             你只有短暂窗口完成反杀。
           </p>
 
@@ -57,7 +57,7 @@ export default function HomeOverlay({
                 <span className="font-pixel text-[0.58rem] uppercase leading-5">节奏</span>
               </div>
               <p className="mt-3 text-sm leading-6 text-stone-300/86">
-                太阳会释放火球和日冕脉冲，阶段越高越密集。打出连续命中可快速滚高分。
+                阿凡提会释放火球和日冕脉冲，阶段越高越密集。打出连续命中可快速滚高分。
               </p>
             </div>
 
@@ -67,7 +67,7 @@ export default function HomeOverlay({
                 <span className="font-pixel text-[0.58rem] uppercase leading-5">目标</span>
               </div>
               <p className="mt-3 text-sm leading-6 text-stone-300/86">
-                在生命归零前摧毁太阳，刷新最高分、最大连击和最快通关时间。
+                在生命归零前击败阿凡提，刷新最高分、最大连击和最快通关时间。
               </p>
             </div>
           </div>
