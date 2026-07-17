@@ -1,57 +1,50 @@
-# React + TypeScript + Vite
+# 射太阳
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一款偏像素方块风的网页动作小游戏。你要操控后羿在天空战场中移动、蓄力、发射，在自己生命归零之前击落不断狂暴化的太阳。
 
-Currently, two official plugins are available:
+## 游戏画面
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 开始页
 
-## Expanding the ESLint configuration
+![开始页](./public/readme/home-screen.png)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 战斗中
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+![战斗中](./public/readme/battle-screen.png)
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 怪物乱撞阶段
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+![怪物乱撞阶段](./public/readme/combat-screen.png)
 
-export default tseslint.config({
-  extends: [
-    // other configs...
-    // Enable lint rules for React
-    reactX.configs['recommended-typescript'],
-    // Enable lint rules for React DOM
-    reactDom.configs.recommended,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+### 结算页
+
+![结算页](./public/readme/result-screen.png)
+
+## 怎么玩
+
+1. 点击“开始发射”进入战场。
+2. 左右移动后羿，避开太阳放出的像素怪物。
+3. 按住蓄力，松开发射箭矢，持续压低太阳核心血量。
+4. 太阳血量越低，阶段越高，攻击会更密更凶。
+5. 在生命值归零前击落太阳，尽量打出更高分、更高连击和更快通关时间。
+
+## 操作方式
+
+- 鼠标或触控左右移动。
+- 键盘 `A / D` 左右移动。
+- 键盘 `S` 或空格发射。
+- 观察上方血条、蓄力条和太阳核心阶段提示，随时调整节奏。
+
+## 得分与成长
+
+- 命中太阳可以持续拿分。
+- 连续命中能把分数滚得更快。
+- 掉落物和技能包能帮助你打出更强节奏。
+- 技能包包含加速和双箭，吃到后更容易打出爆发。
+
+## 生存提示
+
+- 不要只顾输出，先看怪物飞行路线。
+- 怪物现在会从多方向飞来，还会在边界反弹。
+- 太阳进入高阶段后，建议优先走位，再找蓄力窗口。
+- 想刷新纪录，就要平衡命中、连击和生存时间。
