@@ -80,10 +80,8 @@ const pixelMonkeys = [
   { left: 79, bottom: 23, scale: 0.9, duration: "20s", delay: "-14s" },
 ];
 
-const BACKGROUND_DECOR_SCALE = 1.5;
-
 function getDecorScale(scale: number) {
-  return `scale(${scale * BACKGROUND_DECOR_SCALE})`;
+  return `scale(calc(${scale} * var(--decor-scale)))`;
 }
 
 export default function Battlefield({
@@ -112,11 +110,19 @@ export default function Battlefield({
   };
 
   return (
-    <div className="absolute inset-0 p-3 md:p-5">
+    <div
+      className="absolute inset-0 p-2 sm:p-3 md:p-5"
+      style={{
+        paddingTop: "max(env(safe-area-inset-top, 0px), 0.5rem)",
+        paddingRight: "max(env(safe-area-inset-right, 0px), 0.5rem)",
+        paddingBottom: "max(env(safe-area-inset-bottom, 0px), 0.5rem)",
+        paddingLeft: "max(env(safe-area-inset-left, 0px), 0.5rem)",
+      }}
+    >
       <div
         ref={battlefieldRef}
         data-testid="battlefield"
-        className="relative h-full overflow-hidden border-[4px] border-[#1c1008] bg-[#050814] shadow-[0_0_0_4px_rgba(92,58,28,0.45)]"
+        className="battlefield-stage relative h-full overflow-hidden border-[4px] border-[#1c1008] bg-[#050814] shadow-[0_0_0_4px_rgba(92,58,28,0.45)]"
         style={{
           transform: `translate3d(${shakeOffset}px, 0, 0)`,
           touchAction: "none",
@@ -732,11 +738,11 @@ export default function Battlefield({
         <div className="absolute inset-x-[8%] bottom-[8%] h-[3px] bg-gradient-to-r from-transparent via-amber-100/40 to-transparent" />
 
         <div
-          className="absolute bottom-[10%] z-[2] transition-transform duration-75"
+          className="battlefield-player absolute bottom-[10%] z-[2] transition-transform duration-75"
           style={{
             left: `${runtime.playerX}%`,
             top: `${PLAYER_Y}%`,
-            transform: `translate(-50%, -50%) ${runtime.isCharging ? "scale(1.03)" : "scale(1)"}`,
+            transform: `translate(-50%, -50%) scale(${runtime.isCharging ? "calc(var(--player-scale) * 1.03)" : "var(--player-scale)"})`,
           }}
         >
           <div className="absolute -top-12 left-1/2 h-10 w-24 -translate-x-1/2 bg-cyan-200/14 blur-xl" />
@@ -812,6 +818,21 @@ export default function Battlefield({
             <Keyboard className="h-4 w-4" />
             S / 空格发射
           </span>
+        </div>
+
+        <div
+          className="voxel-panel pointer-events-none absolute left-1/2 z-[4] flex w-[calc(100%-1rem)] max-w-xs -translate-x-1/2 items-center justify-between gap-2 px-3 py-2 text-[0.58rem] uppercase tracking-[0.18em] text-stone-200/86 md:hidden"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.55rem)" }}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <MoveHorizontal className="h-3.5 w-3.5" />
+            拖动移动
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <MousePointer2 className="h-3.5 w-3.5" />
+            按住蓄力
+          </span>
+          <span className="font-pixel text-[0.46rem] leading-4 text-amber-100">松开发射</span>
         </div>
 
         <div

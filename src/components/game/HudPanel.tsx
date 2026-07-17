@@ -17,10 +17,17 @@ export default function HudPanel({ runtime }: HudPanelProps) {
   const doubleArrowSeconds = (runtime.doubleArrowMs / 1000).toFixed(1);
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 p-4 md:p-6">
-      <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-        <div className="voxel-panel p-4 backdrop-blur-sm">
-          <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.2fr]">
+    <div
+      className="pointer-events-none absolute inset-x-0 top-0 z-10 px-2 pb-2 pt-2 sm:px-4 sm:pb-4 md:px-6 md:pb-6"
+      style={{
+        paddingTop: "max(env(safe-area-inset-top, 0px), 0.5rem)",
+        paddingRight: "max(env(safe-area-inset-right, 0px), 0.5rem)",
+        paddingLeft: "max(env(safe-area-inset-left, 0px), 0.5rem)",
+      }}
+    >
+      <div className="grid gap-2 sm:gap-4 lg:grid-cols-[1fr_auto]">
+        <div className="voxel-panel p-3 backdrop-blur-sm sm:p-4">
+          <div className="grid gap-3 md:grid-cols-[1fr_1fr_1.2fr] md:gap-4">
             <div>
               <div className="flex items-center gap-2 text-stone-200">
                 <Heart className="h-4 w-4 text-red-300" />
@@ -32,7 +39,7 @@ export default function HudPanel({ runtime }: HudPanelProps) {
                   style={{ width: `${hpPercentage}%` }}
                 />
               </div>
-              <p className="mt-2 text-sm text-stone-300/80">{runtime.playerHp} / 100</p>
+              <p className="mt-2 text-xs text-stone-300/80 sm:text-sm">{runtime.playerHp} / 100</p>
             </div>
 
             <div>
@@ -46,7 +53,7 @@ export default function HudPanel({ runtime }: HudPanelProps) {
                   style={{ width: `${runtime.charge}%` }}
                 />
               </div>
-              <p className="mt-2 text-sm text-stone-300/80">
+              <p className="mt-2 text-xs text-stone-300/80 sm:text-sm">
                 {runtime.isCharging ? "蓄能中" : runtime.cooldownMs > 0 ? "冷却中" : "可开火"}
               </p>
             </div>
@@ -62,7 +69,7 @@ export default function HudPanel({ runtime }: HudPanelProps) {
                   style={{ width: `${bossPercentage}%` }}
                 />
               </div>
-              <div className="mt-2 flex items-center justify-between text-sm text-stone-300/80">
+              <div className="mt-2 flex items-center justify-between text-xs text-stone-300/80 sm:text-sm">
                 <span>阶段 {runtime.sunStage}</span>
                 <span>{Math.round(runtime.sunHp)} / {runtime.maxSunHp}</span>
               </div>
@@ -70,13 +77,13 @@ export default function HudPanel({ runtime }: HudPanelProps) {
           </div>
         </div>
 
-        <div className="voxel-panel px-4 py-5 backdrop-blur-sm">
-          <div className="grid gap-3 text-right">
+        <div className="voxel-panel px-3 py-3 backdrop-blur-sm sm:px-4 sm:py-5">
+          <div className="grid gap-3 text-left sm:text-right">
             <div>
               <p className="font-pixel text-[0.56rem] uppercase leading-5 text-stone-400">得分</p>
               <p className="mt-2 font-pixel text-lg leading-7 text-stone-100">{runtime.score}</p>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-center text-sm text-stone-300/80">
+            <div className="grid grid-cols-3 gap-2 text-center text-xs text-stone-300/80 sm:gap-4 sm:text-sm">
               <div>
                 <p className="font-pixel text-[0.5rem] uppercase leading-5 text-stone-400">连击</p>
                 <p className="mt-1 font-pixel text-xs leading-6 text-amber-100">{runtime.combo}</p>
@@ -90,12 +97,12 @@ export default function HudPanel({ runtime }: HudPanelProps) {
                 <p className="mt-1 font-pixel text-xs leading-6 text-stone-100">{formatTime(runtime.elapsedMs)}</p>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 text-xs uppercase tracking-[0.24em] text-stone-400">
+            <div className="flex items-center justify-start gap-2 text-[0.65rem] uppercase tracking-[0.16em] text-stone-400 sm:justify-end sm:text-xs sm:tracking-[0.24em]">
               <Radar className="h-3.5 w-3.5" />
-              <span>{runtime.message}</span>
+              <span className="text-left sm:text-right">{runtime.message}</span>
             </div>
             {runtime.speedBoostMs > 0 || runtime.doubleArrowMs > 0 ? (
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
                 {runtime.speedBoostMs > 0 ? (
                   <span className="voxel-chip bg-cyan-100/10 px-3 py-1 font-pixel text-[0.48rem] uppercase leading-5 text-cyan-100">
                     疾风 {speedBoostSeconds}s

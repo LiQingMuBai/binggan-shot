@@ -17,15 +17,23 @@
   color: #f6f1ea;
 }
 
+html {
+  min-height: 100%;
+  background: #040611;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
   background:
     linear-gradient(180deg, rgba(86, 144, 255, 0.1) 0 24%, rgba(21, 30, 63, 0.2) 24% 25%, transparent 25%),
     linear-gradient(180deg, rgba(255, 159, 81, 0.08) 0 56%, rgba(13, 18, 37, 0.2) 56% 57%, transparent 57%),
     linear-gradient(180deg, #122447 0%, #0b1830 46%, #1d120c 46%, #120b09 100%);
   image-rendering: pixelated;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button {
@@ -34,6 +42,7 @@ button {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 @layer base {
@@ -320,4 +329,32 @@ button {
 .pixel-monkey {
   animation: pixelMonkeySwing 18s steps(4, end) infinite;
   transform-origin: center bottom;
+}
+
+.battlefield-stage {
+  --decor-scale: 1.08;
+}
+
+.battlefield-player {
+  --player-scale: 0.84;
+}
+
+@media (min-width: 640px) {
+  .battlefield-stage {
+    --decor-scale: 1.24;
+  }
+
+  .battlefield-player {
+    --player-scale: 0.92;
+  }
+}
+
+@media (min-width: 1024px) {
+  .battlefield-stage {
+    --decor-scale: 1.5;
+  }
+
+  .battlefield-player {
+    --player-scale: 1;
+  }
 }
