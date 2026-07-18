@@ -138,10 +138,97 @@ describe("gameLoop", () => {
     expect(nextRuntime.combo).toBe(0);
   });
 
-  it("spawns monster-themed enemy projectiles when the sun attacks", () => {
+  it("lets the player arrows destroy monster projectiles", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        projectiles: [
+          {
+            id: "anti-monster",
+            x: 46,
+            y: 60,
+            vx: 0,
+            vy: 0,
+            damage: 24,
+            radius: 2.2,
+          },
+        ],
+        enemyProjectiles: [
+          {
+            id: "monster-target",
+            x: 46,
+            y: 60,
+            vx: 0,
+            vy: 0,
+            radius: 2.6,
+            pattern: "fireball",
+            monster: "zombie",
+            ttlMs: 2000,
+            ageMs: 0,
+            hasCloned: false,
+            ricochetsLeft: 5,
+            damage: 12,
+          },
+        ],
+      },
+      16,
+    );
+
+    expect(nextRuntime.projectiles).toHaveLength(0);
+    expect(nextRuntime.enemyProjectiles).toHaveLength(0);
+    expect(nextRuntime.enemyBursts).toHaveLength(1);
+    expect(nextRuntime.enemyBursts[0].monster).toBe("zombie");
+    expect(nextRuntime.score).toBe(62);
+    expect(nextRuntime.scorePopups.some((popup) => popup.label === "破怪 +62")).toBe(true);
+  });
+
+  it("grants different score for different monster kills", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        projectiles: [
+          {
+            id: "anti-creeper",
+            x: 40,
+            y: 54,
+            vx: 0,
+            vy: 0,
+            damage: 24,
+            radius: 2.2,
+          },
+        ],
+        enemyProjectiles: [
+          {
+            id: "creeper-target",
+            x: 40,
+            y: 54,
+            vx: 0,
+            vy: 0,
+            radius: 2.8,
+            pattern: "fireball",
+            monster: "creeper",
+            ttlMs: 2000,
+            ageMs: 0,
+            hasCloned: false,
+            ricochetsLeft: 5,
+            damage: 12,
+          },
+        ],
+      },
+      16,
+    );
+
+    expect(nextRuntime.score).toBe(88);
+    expect(nextRuntime.scorePopups.some((popup) => popup.label === "破怪 +88")).toBe(true);
+  });
+
+  it("spawns monster projectiles and ultraviolet bolts when the sun attacks", () => {
     const runtime = {
       ...createPlayingRuntime(),
       elapsedMs: 1200,
+      sunHp: 180,
       sunStage: 3 as const,
       attackCooldownMs: 0,
     };
@@ -150,6 +237,8 @@ describe("gameLoop", () => {
 
     expect(nextRuntime.enemyProjectiles.length).toBeGreaterThan(0);
     expect(nextRuntime.enemyProjectiles.every((projectile) => projectile.monster)).toBe(true);
+    expect(nextRuntime.enemyProjectiles.some((projectile) => projectile.pattern === "uv")).toBe(true);
+    expect(nextRuntime.enemyProjectiles.filter((projectile) => projectile.pattern === "uv")).toHaveLength(2);
   });
 
   it("clones a monster projectile after 1 second", () => {
@@ -318,6 +407,90 @@ describe("gameLoop", () => {
     expect(nextRuntime.freezeWorldMs).toBeGreaterThanOrEqual(4980);
     expect(nextRuntime.skillPacks).toHaveLength(0);
     expect(nextRuntime.scorePopups.some((popup) => popup.kind === "buff" && popup.label === "冰封世界")).toBe(true);
+  });
+
+  it("collects an ultraman pack and starts support mode", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        skillPacks: [
+          {
+            id: "ultraman-pack",
+            x: runtime.playerX,
+            y: PLAYER_Y,
+            vx: 0,
+            vy: 0,
+            radius: 2.8,
+            kind: "ultraman",
+            spin: 0,
+          },
+        ],
+      },
+      16,
+    );
+
+    expect(nextRuntime.ultramanAssistMs).toBeGreaterThan(7000);
+    expect(nextRuntime.ultramanEntryMs).toBeGreaterThan(900);
+    expect(nextRuntime.ultramanShotCooldownMs).toBeGreaterThan(1000);
+    expect(nextRuntime.skillPacks).toHaveLength(0);
+    expect(nextRuntime.scorePopups.some((popup) => popup.kind === "buff" && popup.label === "奥特曼支援")).toBe(true);
+  });
+
+  it("lets ultraman prioritize monster projectiles before attacking the sun", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        sunHp: 400,
+        ultramanAssistMs: 3000,
+        ultramanEntryMs: 0,
+        ultramanShotCooldownMs: 0,
+        enemyProjectiles: [
+          {
+            id: "monster-shot",
+            x: 46,
+            y: 34,
+            vx: 0,
+            vy: 0,
+            radius: 2.4,
+            pattern: "fireball",
+            monster: "zombie",
+            ttlMs: 1800,
+            ageMs: 0,
+            hasCloned: false,
+            ricochetsLeft: 5,
+            damage: 12,
+          },
+        ],
+      },
+      16,
+    );
+
+    expect(nextRuntime.sunHp).toBe(400);
+    expect(nextRuntime.enemyProjectiles).toHaveLength(0);
+    expect(nextRuntime.ultramanBeam).not.toBeNull();
+    expect(nextRuntime.ultramanBeam?.toX).toBe(46);
+    expect(nextRuntime.scorePopups.some((popup) => popup.label === "奥特扫清")).toBe(true);
+  });
+
+  it("lets ultraman attack the sun after the monsters are cleared", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        sunHp: 400,
+        ultramanAssistMs: 3000,
+        ultramanEntryMs: 0,
+        ultramanShotCooldownMs: 0,
+        enemyProjectiles: [],
+      },
+      16,
+    );
+
+    expect(nextRuntime.sunHp).toBeLessThan(400);
+    expect(nextRuntime.scorePopups.some((popup) => popup.label === "奥特光线")).toBe(true);
+    expect(Math.abs((nextRuntime.ultramanBeam?.toX ?? 0) - getSunVisual(nextRuntime).x)).toBeLessThan(1);
   });
 
   it("freezes world objects but keeps the player arrows moving", () => {

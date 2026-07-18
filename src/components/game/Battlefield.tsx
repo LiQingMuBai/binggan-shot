@@ -91,6 +91,13 @@ function getDecorScale(scale: number) {
   return `scale(calc(${scale} * var(--decor-scale)))`;
 }
 
+function getUltramanAnchor(runtime: Pick<GameRuntime, "playerX" | "playerY">) {
+  return {
+    x: Math.min(28, Math.max(12, runtime.playerX - 17)),
+    y: Math.min(76, Math.max(28, runtime.playerY - 10)),
+  };
+}
+
 export default function Battlefield({
   runtime,
   onAim,
@@ -102,6 +109,11 @@ export default function Battlefield({
   const sunVisual = getSunVisual(runtime);
   const canInteract = runtime.phase === "playing";
   const isWorldFrozen = runtime.freezeWorldMs > 0;
+  const isSunAngry = runtime.sunStage >= 2;
+  const isSunFurious = runtime.sunStage >= 3;
+  const ultramanAnchor = getUltramanAnchor(runtime);
+  const isUltramanEntering = runtime.ultramanEntryMs > 0;
+  const ultramanEntryProgress = isUltramanEntering ? 1 - runtime.ultramanEntryMs / 960 : 1;
   const shakeOffset = runtime.screenShakeMs > 0 ? Math.sin(runtime.elapsedMs / 18) * 4.5 : 0;
   const flashOpacity = runtime.impactMs > 0 ? Math.min(0.45, runtime.impactMs / 480) : 0;
   const bowPull = runtime.isCharging ? 10 + runtime.charge * 0.14 : 5;
@@ -494,6 +506,38 @@ export default function Battlefield({
             filter: isWorldFrozen ? "saturate(0.82) brightness(1.08)" : undefined,
           }}
         >
+          {isSunAngry ? (
+            <>
+              <div
+                className="solar-uv-ring absolute inset-[-30%]"
+                style={{ animationPlayState: isWorldFrozen ? "paused" : "running" }}
+              />
+              {[0, 60, 120].map((angle) => (
+                <div
+                  key={`uv-${angle}`}
+                  className="solar-uv-beam absolute left-1/2 top-1/2"
+                  style={{
+                    transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+                    animationPlayState: isWorldFrozen ? "paused" : "running",
+                  }}
+                />
+              ))}
+            </>
+          ) : null}
+          {isSunFurious ? (
+            <>
+              {[0, 1, 2, 3, 4, 5].map((flame) => (
+                <div
+                  key={`flame-${flame}`}
+                  className="solar-flame absolute left-1/2 top-1/2"
+                  style={{
+                    transform: `translate(-50%, -50%) rotate(${flame * 60}deg)`,
+                    animationPlayState: isWorldFrozen ? "paused" : "running",
+                  }}
+                />
+              ))}
+            </>
+          ) : null}
           <div className="absolute inset-[-18%] border-[3px] border-amber-100/20" />
           <div className="absolute inset-[12%] border-[3px] border-white/10" />
           {runtime.sunShieldMs > 0 ? (
@@ -626,7 +670,9 @@ export default function Battlefield({
                   ? "bg-cyan-300/25"
                   : pack.kind === "double"
                     ? "bg-fuchsia-300/25"
-                    : "bg-sky-200/30"
+                    : pack.kind === "freeze"
+                      ? "bg-sky-200/30"
+                      : "bg-red-300/30"
               }`}
             />
             <div
@@ -635,7 +681,9 @@ export default function Battlefield({
                   ? "border-cyan-100/55 bg-gradient-to-br from-cyan-100 via-sky-300 to-blue-600"
                   : pack.kind === "double"
                     ? "border-fuchsia-100/55 bg-gradient-to-br from-amber-100 via-fuchsia-300 to-violet-700"
-                    : "border-sky-100/60 bg-gradient-to-br from-white via-sky-200 to-cyan-500"
+                    : pack.kind === "freeze"
+                      ? "border-sky-100/60 bg-gradient-to-br from-white via-sky-200 to-cyan-500"
+                      : "border-red-100/60 bg-gradient-to-br from-white via-stone-200 to-red-500"
               }`}
             >
               <div className="absolute inset-[18%] border-[2px] border-white/25" />
@@ -645,6 +693,14 @@ export default function Battlefield({
                   <div className="absolute h-4 w-[2px] rounded-full bg-white/95" />
                   <div className="absolute h-[2px] w-4 rotate-45 rounded-full bg-sky-50/90" />
                   <div className="absolute h-[2px] w-4 -rotate-45 rounded-full bg-sky-50/90" />
+                </>
+              ) : pack.kind === "ultraman" ? (
+                <>
+                  <div className="absolute top-[18%] h-2.5 w-2.5 border-[2px] border-white/70 bg-[#eef2f7]" />
+                  <div className="absolute bottom-[16%] h-3.5 w-4 border-[2px] border-white/40 bg-[#d62227]" />
+                  <div className="absolute top-[38%] h-[2px] w-5 bg-cyan-100/95" />
+                  <div className="absolute bottom-[22%] left-[24%] h-[2px] w-2 rotate-45 bg-white/80" />
+                  <div className="absolute bottom-[22%] right-[24%] h-[2px] w-2 -rotate-45 bg-white/80" />
                 </>
               ) : (
                 <>
@@ -669,6 +725,7 @@ export default function Battlefield({
           const glowSize = monsterSize * (projectile.pattern === "pulse" ? 1.6 : 1.35);
           const isSplitBurst = projectile.id.includes("clone") && projectile.ageMs < 220;
           const burstOpacity = Math.max(0.22, 1 - projectile.ageMs / 220);
+          const uvAngle = Math.atan2(projectile.vy, projectile.vx) + Math.PI / 2;
 
           return (
             <div
@@ -701,81 +758,193 @@ export default function Battlefield({
                   ))}
                 </div>
               ) : null}
+              {projectile.pattern === "uv" ? (
+                <>
+                  <div
+                    className="absolute left-1/2 top-1/2 bg-violet-200/40 blur-md"
+                    style={{
+                      width: "1.1rem",
+                      height: "3.8rem",
+                      transform: `translate(-50%, -50%) rotate(${uvAngle}rad)`,
+                    }}
+                  />
+                  <div
+                    className="absolute left-1/2 top-1/2 bg-gradient-to-t from-[#5b1ef1] via-[#b16cff] to-[#f6e4ff]"
+                    style={{
+                      width: "0.28rem",
+                      height: "2.6rem",
+                      transform: `translate(-50%, -50%) rotate(${uvAngle}rad)`,
+                      boxShadow: "0 0 14px rgba(181,108,255,0.7)",
+                    }}
+                  />
+                  <div
+                    className="absolute left-1/2 top-1/2 h-0 w-0 border-l-transparent border-r-transparent border-b-violet-50"
+                    style={{
+                      borderLeftWidth: "0.28rem",
+                      borderRightWidth: "0.28rem",
+                      borderBottomWidth: "0.72rem",
+                      transform: `translate(-50%, calc(-50% - 1.55rem)) rotate(${uvAngle}rad)`,
+                      filter: "drop-shadow(0 0 10px rgba(233,217,255,0.95))",
+                    }}
+                  />
+                  <div
+                    className="absolute left-1/2 top-1/2 h-0 w-0 border-l-transparent border-r-transparent border-t-violet-200/85"
+                    style={{
+                      borderLeftWidth: "0.24rem",
+                      borderRightWidth: "0.24rem",
+                      borderTopWidth: "0.56rem",
+                      transform: `translate(calc(-50% - 0.14rem), calc(-50% + 1.08rem)) rotate(${uvAngle + 0.34}rad)`,
+                    }}
+                  />
+                  <div
+                    className="absolute left-1/2 top-1/2 h-0 w-0 border-l-transparent border-r-transparent border-t-violet-200/85"
+                    style={{
+                      borderLeftWidth: "0.24rem",
+                      borderRightWidth: "0.24rem",
+                      borderTopWidth: "0.56rem",
+                      transform: `translate(calc(-50% + 0.14rem), calc(-50% + 1.08rem)) rotate(${uvAngle - 0.34}rad)`,
+                    }}
+                  />
+                </>
+              ) : null}
+              {projectile.pattern !== "uv" ? (
+                <>
+                  <div
+                    className={`absolute blur-sm ${
+                      projectile.pattern === "pulse" ? "bg-lime-200/20" : "bg-orange-300/20"
+                    }`}
+                    style={{
+                      width: `${glowSize}rem`,
+                      height: `${glowSize}rem`,
+                      transform: "translate(-50%, -50%)",
+                      left: "50%",
+                      top: "50%",
+                    }}
+                  />
+                  <div
+                    className={`relative border-[3px] ${
+                      projectile.monster === "creeper"
+                        ? "border-[#25481f] bg-[#58a33c]"
+                        : projectile.monster === "zombie"
+                          ? "border-[#355c33] bg-[#69a75e]"
+                          : projectile.monster === "skeleton"
+                            ? "border-[#7d8792] bg-[#dce5ed]"
+                            : projectile.monster === "slime"
+                              ? "border-[#4d8d2a] bg-[#8bdd52]"
+                              : "border-[#3f2238] bg-[#6a3f63]"
+                    }`}
+                    style={{
+                      width: `${monsterSize}rem`,
+                      height: `${monsterSize}rem`,
+                      boxShadow:
+                        projectile.pattern === "pulse"
+                          ? "0 0 20px rgba(153,255,119,0.35)"
+                          : "0 0 18px rgba(255,140,76,0.28)",
+                    }}
+                  >
+                    {projectile.monster === "creeper" ? (
+                      <>
+                        <div className="absolute left-[22%] top-[26%] h-[16%] w-[16%] bg-[#10230e]" />
+                        <div className="absolute right-[22%] top-[26%] h-[16%] w-[16%] bg-[#10230e]" />
+                        <div className="absolute left-[36%] top-[46%] h-[26%] w-[28%] bg-[#10230e]" />
+                        <div className="absolute left-[28%] top-[58%] h-[20%] w-[16%] bg-[#10230e]" />
+                        <div className="absolute right-[28%] top-[58%] h-[20%] w-[16%] bg-[#10230e]" />
+                      </>
+                    ) : null}
+                    {projectile.monster === "zombie" ? (
+                      <>
+                        <div className="absolute left-[20%] top-[24%] h-[14%] w-[16%] bg-[#10230e]" />
+                        <div className="absolute right-[20%] top-[24%] h-[14%] w-[16%] bg-[#10230e]" />
+                        <div className="absolute left-[26%] top-[54%] h-[10%] w-[48%] bg-[#3c5d91]" />
+                      </>
+                    ) : null}
+                    {projectile.monster === "skeleton" ? (
+                      <>
+                        <div className="absolute left-[20%] top-[24%] h-[14%] w-[14%] bg-[#49525c]" />
+                        <div className="absolute right-[20%] top-[24%] h-[14%] w-[14%] bg-[#49525c]" />
+                        <div className="absolute left-[24%] top-[50%] h-[8%] w-[52%] bg-[#7a838d]" />
+                        <div className="absolute left-[48%] top-[58%] h-[16%] w-[4%] bg-[#7a838d]" />
+                      </>
+                    ) : null}
+                    {projectile.monster === "slime" ? (
+                      <>
+                        <div className="absolute inset-[16%] bg-[#b6ff82]/30" />
+                        <div className="absolute left-[22%] top-[38%] h-[12%] w-[12%] bg-[#244a13]" />
+                        <div className="absolute right-[22%] top-[38%] h-[12%] w-[12%] bg-[#244a13]" />
+                        <div className="absolute left-[32%] top-[58%] h-[8%] w-[36%] bg-[#244a13]" />
+                      </>
+                    ) : null}
+                    {projectile.monster === "spider" ? (
+                      <>
+                        <div className="absolute inset-[20%] bg-[#2a1628]" />
+                        <div className="absolute left-[20%] top-[32%] h-[12%] w-[12%] bg-[#f04455]" />
+                        <div className="absolute right-[20%] top-[32%] h-[12%] w-[12%] bg-[#f04455]" />
+                        <div className="absolute left-[-18%] top-[48%] h-[8%] w-[24%] bg-[#2a1628]" />
+                        <div className="absolute right-[-18%] top-[48%] h-[8%] w-[24%] bg-[#2a1628]" />
+                      </>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          );
+        })}
+
+        {runtime.enemyBursts.map((burst) => {
+          const burstTone =
+            burst.monster === "creeper"
+              ? { glow: "rgba(112, 232, 88, 0.7)", core: "#9af77f", shard: "#4d9c36" }
+              : burst.monster === "skeleton"
+                ? { glow: "rgba(228, 238, 249, 0.78)", core: "#f8fbff", shard: "#aeb9c8" }
+                : burst.monster === "slime"
+                  ? { glow: "rgba(170, 255, 122, 0.68)", core: "#d5ffb2", shard: "#6bc13d" }
+                  : burst.monster === "spider"
+                    ? { glow: "rgba(255, 98, 142, 0.68)", core: "#ffbfd2", shard: "#8a365f" }
+                    : { glow: "rgba(142, 198, 120, 0.68)", core: "#d7efcc", shard: "#58824f" };
+          const burstOpacity = burst.ttlMs / 280;
+
+          return (
+            <div
+              key={burst.id}
+              className="enemy-kill-burst absolute left-0 top-0"
+              style={{
+                left: `${burst.x}%`,
+                top: `${burst.y}%`,
+                opacity: burstOpacity,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
               <div
-                className={`absolute blur-sm ${
-                  projectile.pattern === "pulse" ? "bg-lime-200/20" : "bg-orange-300/20"
-                }`}
+                className="enemy-kill-ring"
                 style={{
-                  width: `${glowSize}rem`,
-                  height: `${glowSize}rem`,
-                  transform: "translate(-50%, -50%)",
-                  left: "50%",
-                  top: "50%",
+                  borderColor: burstTone.core,
+                  boxShadow: `0 0 14px ${burstTone.glow}, 0 0 28px ${burstTone.glow}`,
                 }}
               />
               <div
-                className={`relative border-[3px] ${
-                  projectile.monster === "creeper"
-                    ? "border-[#25481f] bg-[#58a33c]"
-                    : projectile.monster === "zombie"
-                      ? "border-[#355c33] bg-[#69a75e]"
-                      : projectile.monster === "skeleton"
-                        ? "border-[#7d8792] bg-[#dce5ed]"
-                        : projectile.monster === "slime"
-                          ? "border-[#4d8d2a] bg-[#8bdd52]"
-                          : "border-[#3f2238] bg-[#6a3f63]"
-                }`}
+                className="enemy-kill-core"
                 style={{
-                  width: `${monsterSize}rem`,
-                  height: `${monsterSize}rem`,
-                  boxShadow:
-                    projectile.pattern === "pulse"
-                      ? "0 0 20px rgba(153,255,119,0.35)"
-                      : "0 0 18px rgba(255,140,76,0.28)",
+                  background: burstTone.core,
+                  boxShadow: `0 0 14px ${burstTone.glow}`,
                 }}
-              >
-                {projectile.monster === "creeper" ? (
-                  <>
-                    <div className="absolute left-[22%] top-[26%] h-[16%] w-[16%] bg-[#10230e]" />
-                    <div className="absolute right-[22%] top-[26%] h-[16%] w-[16%] bg-[#10230e]" />
-                    <div className="absolute left-[36%] top-[46%] h-[26%] w-[28%] bg-[#10230e]" />
-                    <div className="absolute left-[28%] top-[58%] h-[20%] w-[16%] bg-[#10230e]" />
-                    <div className="absolute right-[28%] top-[58%] h-[20%] w-[16%] bg-[#10230e]" />
-                  </>
-                ) : null}
-                {projectile.monster === "zombie" ? (
-                  <>
-                    <div className="absolute left-[20%] top-[24%] h-[14%] w-[16%] bg-[#10230e]" />
-                    <div className="absolute right-[20%] top-[24%] h-[14%] w-[16%] bg-[#10230e]" />
-                    <div className="absolute left-[26%] top-[54%] h-[10%] w-[48%] bg-[#3c5d91]" />
-                  </>
-                ) : null}
-                {projectile.monster === "skeleton" ? (
-                  <>
-                    <div className="absolute left-[20%] top-[24%] h-[14%] w-[14%] bg-[#49525c]" />
-                    <div className="absolute right-[20%] top-[24%] h-[14%] w-[14%] bg-[#49525c]" />
-                    <div className="absolute left-[24%] top-[50%] h-[8%] w-[52%] bg-[#7a838d]" />
-                    <div className="absolute left-[48%] top-[58%] h-[16%] w-[4%] bg-[#7a838d]" />
-                  </>
-                ) : null}
-                {projectile.monster === "slime" ? (
-                  <>
-                    <div className="absolute inset-[16%] bg-[#b6ff82]/30" />
-                    <div className="absolute left-[22%] top-[38%] h-[12%] w-[12%] bg-[#244a13]" />
-                    <div className="absolute right-[22%] top-[38%] h-[12%] w-[12%] bg-[#244a13]" />
-                    <div className="absolute left-[32%] top-[58%] h-[8%] w-[36%] bg-[#244a13]" />
-                  </>
-                ) : null}
-                {projectile.monster === "spider" ? (
-                  <>
-                    <div className="absolute inset-[20%] bg-[#2a1628]" />
-                    <div className="absolute left-[20%] top-[32%] h-[12%] w-[12%] bg-[#f04455]" />
-                    <div className="absolute right-[20%] top-[32%] h-[12%] w-[12%] bg-[#f04455]" />
-                    <div className="absolute left-[-18%] top-[48%] h-[8%] w-[24%] bg-[#2a1628]" />
-                    <div className="absolute right-[-18%] top-[48%] h-[8%] w-[24%] bg-[#2a1628]" />
-                  </>
-                ) : null}
-              </div>
+              />
+              {[0, 45, 90, 135].map((angle) => (
+                <div
+                  key={`${burst.id}-${angle}`}
+                  className="enemy-kill-shard"
+                  style={{
+                    transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+                  }}
+                >
+                  <div
+                    className="enemy-kill-shard-bar"
+                    style={{
+                      background: `linear-gradient(180deg, ${burstTone.core}, ${burstTone.shard}, transparent)`,
+                      boxShadow: `0 0 12px ${burstTone.glow}`,
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           );
         })}
@@ -816,6 +985,69 @@ export default function Battlefield({
               冰封世界
             </div>
           </>
+        ) : null}
+
+        {runtime.ultramanAssistMs > 0 ? (
+          <div
+            className="absolute z-[2]"
+            style={{
+              left: `${ultramanAnchor.x}%`,
+              top: `${ultramanAnchor.y}%`,
+              transform: `translate(-50%, -50%) scale(var(--player-scale)) translateY(${
+                isUltramanEntering ? `${(1 - ultramanEntryProgress) * -6.5}rem` : "0rem"
+              })`,
+              opacity: runtime.freezeWorldMs > 0 ? 0.92 : 1,
+            }}
+          >
+            <div className="absolute -inset-x-4 -bottom-1 h-3 bg-cyan-200/20 blur-md" />
+            {isUltramanEntering ? (
+              <>
+                <div className="ultraman-entry-column absolute left-1/2 top-1/2 h-[14rem] w-[4.6rem] -translate-x-1/2 -translate-y-[72%]" />
+                <div className="ultraman-entry-ring absolute left-1/2 top-[88%] h-12 w-16 -translate-x-1/2 -translate-y-1/2" />
+              </>
+            ) : null}
+            <div className={`relative h-[6.2rem] w-[4.8rem] ${isUltramanEntering ? "ultraman-entry-body" : ""}`}>
+              <div className="absolute left-1/2 top-[2%] h-5 w-5 -translate-x-1/2 border-[3px] border-slate-100/75 bg-gradient-to-b from-[#f6f9fc] via-[#d8dde4] to-[#a0a8b3]">
+                <div className="absolute left-[18%] top-[36%] h-[2px] w-[2px] bg-cyan-200" />
+                <div className="absolute right-[18%] top-[36%] h-[2px] w-[2px] bg-cyan-200" />
+                <div className="absolute left-1/2 top-[-0.45rem] h-3 w-[3px] -translate-x-1/2 bg-gradient-to-t from-red-400 to-cyan-100" />
+              </div>
+              <div className="absolute left-1/2 top-[24%] h-8 w-9 -translate-x-1/2 border-[3px] border-slate-100/55 bg-gradient-to-b from-[#f2f4f7] via-[#c7cdd6] to-[#8a93a2]">
+                <div className="absolute inset-x-[18%] top-[22%] h-[2px] bg-cyan-100/90" />
+                <div className="absolute left-1/2 top-[42%] h-3.5 w-4 -translate-x-1/2 bg-[#d11c24]" />
+              </div>
+              <div className="absolute left-[8%] top-[34%] h-2 w-7 origin-right bg-gradient-to-r from-slate-100 to-[#9ca6b4]" style={{ transform: "rotate(-24deg)" }} />
+              <div className="absolute right-[8%] top-[34%] h-2 w-7 origin-left bg-gradient-to-r from-slate-100 to-[#9ca6b4]" style={{ transform: "rotate(24deg)" }} />
+              <div className="absolute left-[22%] top-[54%] h-8 w-2.5 bg-[#d11c24]" />
+              <div className="absolute right-[22%] top-[54%] h-8 w-2.5 bg-[#d11c24]" />
+              <div className="absolute left-[18%] top-[61%] h-2.5 w-3.5 border-[2px] border-slate-100/55 bg-[#eef2f7]" />
+              <div className="absolute right-[18%] top-[61%] h-2.5 w-3.5 border-[2px] border-slate-100/55 bg-[#eef2f7]" />
+            </div>
+          </div>
+        ) : null}
+
+        {runtime.ultramanBeam ? (
+          <div
+            className="pointer-events-none absolute z-[3]"
+            style={{
+              left: `${runtime.ultramanBeam.fromX}%`,
+              top: `${runtime.ultramanBeam.fromY}%`,
+              width: `${Math.hypot(runtime.ultramanBeam.toX - runtime.ultramanBeam.fromX, runtime.ultramanBeam.toY - runtime.ultramanBeam.fromY)}%`,
+              transform: `translateY(-50%) rotate(${Math.atan2(
+                runtime.ultramanBeam.toY - runtime.ultramanBeam.fromY,
+                runtime.ultramanBeam.toX - runtime.ultramanBeam.fromX,
+              )}rad)`,
+              transformOrigin: "left center",
+              opacity: runtime.ultramanBeam.ttlMs / 220,
+            }}
+          >
+            <div className="absolute left-0 top-1/2 h-7 w-full -translate-y-1/2 bg-cyan-200/45 blur-xl" />
+            <div className="absolute left-0 top-1/2 h-4 w-full -translate-y-1/2 bg-cyan-100/65 blur-md" />
+            <div className="absolute left-0 top-1/2 h-[10px] w-full -translate-y-1/2 bg-gradient-to-r from-[#87f6ff] via-white to-[#87f6ff]" />
+            <div className="absolute left-0 top-1/2 h-[4px] w-full -translate-y-1/2 bg-white" />
+            <div className="absolute right-[-0.7rem] top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-cyan-100/90 blur-[3px]" />
+            <div className="absolute right-[-0.35rem] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white" />
+          </div>
         ) : null}
 
         <div className="absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(180deg,rgba(255,119,51,0)_0%,rgba(255,119,51,0.08)_35%,rgba(255,141,54,0.18)_100%)]" />

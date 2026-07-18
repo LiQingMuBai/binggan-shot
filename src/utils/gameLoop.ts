@@ -1,8 +1,8 @@
 export type GamePhase = "idle" | "playing" | "victory" | "defeat";
 export type SunStage = 1 | 2 | 3;
-export type EnemyPattern = "fireball" | "pulse";
+export type EnemyPattern = "fireball" | "pulse" | "uv";
 export type EnemyMonsterKind = "creeper" | "zombie" | "skeleton" | "slime" | "spider";
-export type PowerupKind = "speed" | "double" | "freeze";
+export type PowerupKind = "speed" | "double" | "freeze" | "ultraman";
 
 export interface ProjectileState {
   id: string;
@@ -28,6 +28,14 @@ export interface EnemyProjectileState {
   hasCloned: boolean;
   ricochetsLeft: number;
   damage: number;
+}
+
+export interface EnemyBurstState {
+  id: string;
+  x: number;
+  y: number;
+  ttlMs: number;
+  monster: EnemyMonsterKind;
 }
 
 export interface SunDropState {
@@ -62,6 +70,14 @@ export interface ScorePopupState {
   label: string;
 }
 
+export interface UltramanBeamState {
+  ttlMs: number;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+}
+
 export interface LocalRecord {
   bestScore: number;
   bestCombo: number;
@@ -84,12 +100,17 @@ export interface GameRuntime extends LocalRecord {
   sunShieldMs: number;
   projectiles: ProjectileState[];
   enemyProjectiles: EnemyProjectileState[];
+  enemyBursts: EnemyBurstState[];
   sunDrops: SunDropState[];
   skillPacks: SkillPackState[];
   scorePopups: ScorePopupState[];
   speedBoostMs: number;
   doubleArrowMs: number;
   freezeWorldMs: number;
+  ultramanAssistMs: number;
+  ultramanEntryMs: number;
+  ultramanShotCooldownMs: number;
+  ultramanBeam: UltramanBeamState | null;
   attackCooldownMs: number;
   score: number;
   combo: number;
@@ -119,6 +140,9 @@ const CHARGE_PER_MS = 0.082;
 const BUFF_DURATION_MS = 6200;
 const FREEZE_WORLD_DURATION_MS = 5000;
 const ENEMY_CLONE_DELAY_MS = 1000;
+const ULTRAMAN_ASSIST_DURATION_MS = 7800;
+const ULTRAMAN_SHOT_INTERVAL_MS = 360;
+const ULTRAMAN_ENTRY_DURATION_MS = 960;
 const DEFAULT_RECORD: LocalRecord = {
   bestScore: 0,
   bestCombo: 0,
@@ -147,6 +171,33 @@ function getPlayerCeilingY(runtime: Pick<GameRuntime, "worldElapsedMs" | "sunSta
 
 function getProjectileStartY(playerY: number) {
   return round(Math.max(12, playerY - 7));
+}
+
+function getUltramanAnchor(runtime: Pick<GameRuntime, "playerX" | "playerY">) {
+  return {
+    x: clamp(round(runtime.playerX - 17), 12, 28),
+    y: clamp(round(runtime.playerY - 10), 28, 76),
+  };
+}
+
+function getEnemyDefeatScore(monster: EnemyMonsterKind) {
+  if (monster === "creeper") {
+    return 88;
+  }
+
+  if (monster === "skeleton") {
+    return 74;
+  }
+
+  if (monster === "spider") {
+    return 68;
+  }
+
+  if (monster === "slime") {
+    return 56;
+  }
+
+  return 62;
 }
 
 export function loadRecord(): LocalRecord {
@@ -203,7 +254,7 @@ export function getSunVisual(runtime: Pick<GameRuntime, "worldElapsedMs" | "sunS
   return {
     x: 50 + Math.sin(runtime.worldElapsedMs * speed) * amplitude,
     y: 17 + Math.cos(runtime.worldElapsedMs * 0.0009) * 1.8,
-    radius: 9.5 - (runtime.sunStage - 1) * 0.7,
+    radius: 5.6 - (runtime.sunStage - 1) * 0.45,
   };
 }
 
@@ -225,12 +276,17 @@ export function createIdleRuntime(record: LocalRecord = DEFAULT_RECORD): GameRun
     sunShieldMs: 0,
     projectiles: [],
     enemyProjectiles: [],
+    enemyBursts: [],
     sunDrops: [],
     skillPacks: [],
     scorePopups: [],
     speedBoostMs: 0,
     doubleArrowMs: 0,
     freezeWorldMs: 0,
+    ultramanAssistMs: 0,
+    ultramanEntryMs: 0,
+    ultramanShotCooldownMs: 0,
+    ultramanBeam: null,
     attackCooldownMs: 1200,
     score: 0,
     combo: 0,
@@ -333,14 +389,14 @@ export function releaseCharge(runtime: GameRuntime): GameRuntime {
 
 function getAttackInterval(stage: SunStage) {
   if (stage === 1) {
-    return 1250;
+    return 1780;
   }
 
   if (stage === 2) {
-    return 980;
+    return 1480;
   }
 
-  return 760;
+  return 1180;
 }
 
 function createEnemyProjectile(
@@ -357,6 +413,8 @@ function createEnemyProjectile(
     damage: number;
   },
 ): EnemyProjectileState {
+  const isUvBolt = options.pattern === "uv";
+
   return {
     id: options.id,
     x: round(options.x),
@@ -366,10 +424,10 @@ function createEnemyProjectile(
     radius: round(options.radius),
     pattern: options.pattern,
     monster: options.monster,
-    ttlMs: options.pattern === "pulse" ? 4600 : 4000 + runtime.sunStage * 260,
+    ttlMs: isUvBolt ? 2200 + runtime.sunStage * 120 : options.pattern === "pulse" ? 4600 : 4000 + runtime.sunStage * 260,
     ageMs: 0,
-    hasCloned: false,
-    ricochetsLeft: options.pattern === "pulse" ? 8 : 6 + runtime.sunStage,
+    hasCloned: isUvBolt,
+    ricochetsLeft: isUvBolt ? 0 : options.pattern === "pulse" ? 8 : 6 + runtime.sunStage,
     damage: options.damage,
   };
 }
@@ -412,7 +470,7 @@ function createEnemyVolley(runtime: GameRuntime): EnemyProjectileState[] {
     x: sunVisual.x + Math.cos(primaryAngle) * (sunVisual.radius * 0.48),
     y: sunVisual.y + Math.sin(primaryAngle) * (sunVisual.radius * 0.48),
     angleRad: primaryAngle,
-    speed: 28 + runtime.sunStage * 4.4,
+    speed: 18 + runtime.sunStage * 3.1,
     radius: 2 + runtime.sunStage * 0.45,
     pattern: "fireball",
     monster: primaryMonster,
@@ -429,14 +487,31 @@ function createEnemyVolley(runtime: GameRuntime): EnemyProjectileState[] {
     x: sunVisual.x + Math.cos(sideAngle) * (sunVisual.radius * 0.56),
     y: sunVisual.y + Math.sin(sideAngle) * (sunVisual.radius * 0.56),
     angleRad: sideAngle,
-    speed: 24 + runtime.sunStage * 4.2,
+    speed: 15 + runtime.sunStage * 2.8,
     radius: 1.8 + runtime.sunStage * 0.35,
     pattern: runtime.sunStage === 3 ? "pulse" : "fireball",
     monster: runtime.sunStage === 3 ? "slime" : runtime.sunStage === 2 ? "spider" : "creeper",
     damage: runtime.sunStage === 3 ? 18 : 9,
   });
 
-  return [primary, side];
+  const uvOffsets = runtime.sunStage === 3 ? [-0.16, 0.16] : [0];
+  const uvBolts = uvOffsets.map((offset, index) => {
+    const uvAngle = baseAngle + offset + spreadSeed * 0.06;
+
+    return createEnemyProjectile(runtime, {
+      id: `uv-${runtime.elapsedMs}-${index}`,
+      x: sunVisual.x + Math.cos(uvAngle) * (sunVisual.radius * 0.62),
+      y: sunVisual.y + Math.sin(uvAngle) * (sunVisual.radius * 0.62),
+      angleRad: uvAngle,
+      speed: 28 + runtime.sunStage * 2.3,
+      radius: 1.4 + runtime.sunStage * 0.14,
+      pattern: "uv",
+      monster: "spider",
+      damage: 8 + runtime.sunStage * 3,
+    });
+  });
+
+  return [primary, side, ...uvBolts];
 }
 
 function getProjectileDistance(aX: number, aY: number, bX: number, bY: number) {
@@ -531,11 +606,18 @@ function createSkillPack(
 
   const kindRoll = seededUnit(runtime.elapsedMs + runtime.combo * 29 + damage * 11);
   const kind: PowerupKind =
-    kindRoll > 0.66 ? "double" : kindRoll > 0.33 ? "speed" : "freeze";
-  const spawnOffsetX = kind === "double" ? 2.4 : kind === "speed" ? -2.2 : 0;
+    kindRoll > 0.48 ? "ultraman" : kindRoll > 0.32 ? "double" : kindRoll > 0.16 ? "speed" : "freeze";
+  const spawnOffsetX =
+    kind === "double" ? 2.4 : kind === "speed" ? -2.2 : kind === "ultraman" ? 1.2 : 0;
   const launchVx =
-    kind === "double" ? 8 : kind === "speed" ? -8 : (runtime.playerX - impactX) * 0.15;
-  const spin = kind === "double" ? 0.9 : kind === "speed" ? -0.7 : 0.42;
+    kind === "double"
+      ? 8
+      : kind === "speed"
+        ? -8
+        : kind === "ultraman"
+          ? 4.5
+          : (runtime.playerX - impactX) * 0.15;
+  const spin = kind === "double" ? 0.9 : kind === "speed" ? -0.7 : kind === "ultraman" ? 0.22 : 0.42;
 
   return [
     {
@@ -579,12 +661,24 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
     speedBoostMs: Math.max(0, runtime.speedBoostMs - stepMs),
     doubleArrowMs: Math.max(0, runtime.doubleArrowMs - stepMs),
     freezeWorldMs: Math.max(0, runtime.freezeWorldMs - stepMs),
+    ultramanAssistMs: Math.max(0, runtime.ultramanAssistMs - stepMs),
+    ultramanEntryMs: Math.max(0, runtime.ultramanEntryMs - activeWorldStepMs),
+    ultramanShotCooldownMs: Math.max(0, runtime.ultramanShotCooldownMs - activeWorldStepMs),
+    ultramanBeam:
+      runtime.ultramanBeam && runtime.ultramanBeam.ttlMs - activeWorldStepMs > 0
+        ? {
+            ...runtime.ultramanBeam,
+            ttlMs: runtime.ultramanBeam.ttlMs - activeWorldStepMs,
+          }
+        : null,
     attackCooldownMs: runtime.attackCooldownMs - activeWorldStepMs,
     accuracy: updateAccuracy(runtime.shotsFired, runtime.shotsHit),
   };
 
   const currentSunVisual = getSunVisual(nextState);
   const remainingProjectiles: ProjectileState[] = [];
+  let enemyProjectilesAfterArrowHits = [...nextState.enemyProjectiles];
+  const enemyBursts: EnemyBurstState[] = [];
   let sunHp = nextState.sunHp;
   let score = nextState.score;
   let combo = nextState.combo;
@@ -605,12 +699,58 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
     }
   });
 
+  nextState.enemyBursts.forEach((burst) => {
+    const movedBurst = {
+      ...burst,
+      ttlMs: burst.ttlMs - stepMs,
+    };
+
+    if (movedBurst.ttlMs > 0) {
+      enemyBursts.push(movedBurst);
+    }
+  });
+
   nextState.projectiles.forEach((projectile) => {
     const movedProjectile = {
       ...projectile,
       x: projectile.x + (projectile.vx * stepMs) / 1000,
       y: projectile.y - (projectile.vy * stepMs) / 1000,
     };
+
+    const enemyHitIndex = enemyProjectilesAfterArrowHits.findIndex(
+      (enemyProjectile) =>
+        getProjectileDistance(movedProjectile.x, movedProjectile.y, enemyProjectile.x, enemyProjectile.y) <=
+        movedProjectile.radius + enemyProjectile.radius + 0.8,
+    );
+
+    if (enemyHitIndex >= 0) {
+      const [destroyedEnemyProjectile] = enemyProjectilesAfterArrowHits.splice(enemyHitIndex, 1);
+
+      if (destroyedEnemyProjectile) {
+        combo += 1;
+        shotsHit += 1;
+        const interceptScore = getEnemyDefeatScore(destroyedEnemyProjectile.monster);
+        score += interceptScore;
+        enemyBursts.push({
+          id: `enemy-burst-${destroyedEnemyProjectile.id}-${elapsedMs}`,
+          x: destroyedEnemyProjectile.x,
+          y: destroyedEnemyProjectile.y,
+          ttlMs: 280,
+          monster: destroyedEnemyProjectile.monster,
+        });
+        scorePopups.push(
+          createScorePopup(
+            destroyedEnemyProjectile.x,
+            destroyedEnemyProjectile.y,
+            interceptScore,
+            "impact",
+            `破怪 +${interceptScore}`,
+          ),
+        );
+        message = combo > 4 ? `连击 ${combo}，箭矢击碎怪物。` : "箭矢击碎怪物。";
+      }
+      return;
+    }
 
     const collided =
       nextState.sunShieldMs <= 0 &&
@@ -642,6 +782,8 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
   });
 
   nextState.projectiles = remainingProjectiles;
+  nextState.enemyProjectiles = enemyProjectilesAfterArrowHits;
+  nextState.enemyBursts = enemyBursts;
   nextState.sunHp = sunHp;
   nextState.score = score;
   nextState.combo = combo;
@@ -702,6 +844,14 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
           createScorePopup(nextState.playerX, nextState.playerY - 8, 0, "buff", "双箭齐发"),
         );
         message = "吃到双箭技能包，下一轮改为双箭。";
+      } else if (movedPack.kind === "ultraman") {
+        nextState.ultramanAssistMs = Math.max(nextState.ultramanAssistMs, ULTRAMAN_ASSIST_DURATION_MS);
+        nextState.ultramanEntryMs = ULTRAMAN_ENTRY_DURATION_MS;
+        nextState.ultramanShotCooldownMs = ULTRAMAN_ENTRY_DURATION_MS + 120;
+        scorePopups.push(
+          createScorePopup(nextState.playerX, nextState.playerY - 8, 0, "buff", "奥特曼支援"),
+        );
+        message = "吃到奥特曼技能包，奥特曼降临战场支援。";
       } else {
         nextState.freezeWorldMs = Math.max(nextState.freezeWorldMs, FREEZE_WORLD_DURATION_MS);
         scorePopups.push(
@@ -718,6 +868,53 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
   });
 
   nextState.skillPacks = remainingSkillPacks;
+
+  if (nextState.ultramanAssistMs > 0 && activeWorldStepMs > 0 && nextState.ultramanShotCooldownMs <= 0) {
+    const ultramanAnchor = getUltramanAnchor(nextState);
+    let beamTargetX = currentSunVisual.x;
+    let beamTargetY = currentSunVisual.y;
+
+    if (nextState.enemyProjectiles.length > 0) {
+      let nearestIndex = 0;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      nextState.enemyProjectiles.forEach((projectile, index) => {
+        const distance = getProjectileDistance(ultramanAnchor.x, ultramanAnchor.y, projectile.x, projectile.y);
+
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = index;
+        }
+      });
+
+      const [destroyedProjectile] = nextState.enemyProjectiles.splice(nearestIndex, 1);
+
+      if (destroyedProjectile) {
+        beamTargetX = destroyedProjectile.x;
+        beamTargetY = destroyedProjectile.y;
+        nextState.score += 42;
+        scorePopups.push(createScorePopup(destroyedProjectile.x, destroyedProjectile.y, 42, "impact", "奥特扫清"));
+        message = "奥特曼优先锁定怪物，先清场再压阿凡提。";
+      }
+    } else {
+      const ultramanDamage = nextState.sunStage === 3 ? 18 : 14;
+      sunHp = Math.max(0, sunHp - ultramanDamage);
+      nextState.sunHp = sunHp;
+      scorePopups.push(
+        createScorePopup(currentSunVisual.x, currentSunVisual.y, ultramanDamage * 6, "impact", "奥特光线"),
+      );
+      message = "奥特曼清场完成，斯派修姆光线直击阿凡提。";
+    }
+
+    nextState.ultramanShotCooldownMs = ULTRAMAN_SHOT_INTERVAL_MS;
+    nextState.ultramanBeam = {
+      ttlMs: 220,
+      fromX: ultramanAnchor.x,
+      fromY: ultramanAnchor.y,
+      toX: beamTargetX,
+      toY: beamTargetY,
+    };
+  }
 
   const resolvedStage = resolveSunStage(sunHp, nextState.maxSunHp);
 
@@ -739,7 +936,10 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
       ...createEnemyVolley(nextState),
     ];
     nextState.attackCooldownMs = getAttackInterval(nextState.sunStage);
-    message = nextState.sunStage === 3 ? "阿凡提放出四散反弹的怪物潮。" : "阿凡提吐出会乱撞的怪物。";
+    message =
+      nextState.sunStage === 3
+        ? "阿凡提放出反弹怪物潮，并夹带双重紫外线箭。"
+        : "阿凡提吐出怪物，同时射出紫外线箭。";
   }
 
   const remainingEnemyProjectiles: EnemyProjectileState[] = [];

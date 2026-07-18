@@ -31,8 +31,8 @@ export default function HomeOverlay({
         paddingLeft: "max(env(safe-area-inset-left, 0px), 1rem)",
       }}
     >
-      <div className="mx-auto grid w-full max-w-6xl gap-4 sm:gap-6 lg:grid-cols-[1.3fr_0.9fr]">
-        <div className="voxel-panel p-4 backdrop-blur-sm sm:p-8">
+      <div className="mx-auto grid w-full max-w-6xl gap-4 sm:gap-5 md:grid-cols-[1.3fr_0.9fr]">
+        <div className="voxel-panel p-4 backdrop-blur-sm sm:p-6 lg:p-8">
           <p className="font-pixel text-[0.6rem] uppercase leading-6 text-amber-200/80">
             Biscuit vs Afanti
           </p>
@@ -44,7 +44,7 @@ export default function HomeOverlay({
             你只有短暂窗口完成反杀。
           </p>
 
-          <div className="mt-6 grid gap-3 sm:mt-8 sm:gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-3 sm:mt-7 sm:gap-4 md:grid-cols-3">
             <div className="voxel-card p-4 sm:p-4">
               <div className="flex items-center gap-3 text-amber-200">
                 <Crosshair className="h-4 w-4" />
@@ -65,7 +65,7 @@ export default function HomeOverlay({
                 <span className="font-pixel text-[0.58rem] uppercase leading-5">节奏</span>
               </div>
               <p className="mt-3 text-xs leading-6 text-stone-300/86 sm:text-sm">
-                阿凡提会释放火球和日冕脉冲，阶段越高越密集。掉落的技能包包含疾风、双箭和 5 秒冰封世界。
+                阿凡提会释放火球和日冕脉冲，阶段越高越密集。掉落的技能包包含疾风、双箭、5 秒冰封世界和奥特曼支援。
               </p>
             </div>
 
@@ -80,7 +80,7 @@ export default function HomeOverlay({
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+          <div className="mt-6 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
             <button
               type="button"
               onClick={onStart}
@@ -102,7 +102,7 @@ export default function HomeOverlay({
           </div>
         </div>
 
-        <aside className="voxel-panel p-4 backdrop-blur-sm sm:p-6">
+        <aside className="voxel-panel p-4 backdrop-blur-sm sm:p-5 lg:p-6">
           <div className="flex items-center gap-3 text-stone-100">
             <Trophy className="h-5 w-5 text-amber-200" />
             <h2 className="font-pixel text-sm uppercase leading-6">战绩档案</h2>
