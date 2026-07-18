@@ -2,24 +2,31 @@ import { Keyboard, MoveHorizontal, MousePointer2 } from "lucide-react";
 import { useRef } from "react";
 
 import {
-  PLAYER_Y,
   getSunVisual,
   type GameRuntime,
 } from "@/utils/gameLoop";
 
 interface BattlefieldProps {
   runtime: GameRuntime;
-  onAim: (x: number) => void;
+  onAim: (x: number, y?: number) => void;
   onChargeStart: () => void;
   onChargeEnd: () => void;
   onChargeCancel: () => void;
 }
 
 const pixelTrees = [
-  { left: 8, bottom: 27, scale: 0.82 },
-  { left: 18, bottom: 28, scale: 1.02 },
-  { left: 72, bottom: 27, scale: 0.88 },
-  { left: 86, bottom: 29, scale: 1.08 },
+  { left: 2, bottom: 24, scale: 0.84 },
+  { left: 8, bottom: 27, scale: 0.96 },
+  { left: 14, bottom: 25, scale: 0.9 },
+  { left: 20, bottom: 29, scale: 1.08 },
+  { left: 27, bottom: 26, scale: 0.98 },
+  { left: 33, bottom: 24, scale: 0.86 },
+  { left: 64, bottom: 24, scale: 0.88 },
+  { left: 71, bottom: 28, scale: 1.02 },
+  { left: 78, bottom: 25, scale: 0.92 },
+  { left: 84, bottom: 29, scale: 1.1 },
+  { left: 90, bottom: 26, scale: 0.96 },
+  { left: 96, bottom: 24, scale: 0.84 },
 ];
 
 const pixelBushes = [
@@ -94,11 +101,12 @@ export default function Battlefield({
   const battlefieldRef = useRef<HTMLDivElement>(null);
   const sunVisual = getSunVisual(runtime);
   const canInteract = runtime.phase === "playing";
+  const isWorldFrozen = runtime.freezeWorldMs > 0;
   const shakeOffset = runtime.screenShakeMs > 0 ? Math.sin(runtime.elapsedMs / 18) * 4.5 : 0;
   const flashOpacity = runtime.impactMs > 0 ? Math.min(0.45, runtime.impactMs / 480) : 0;
   const bowPull = runtime.isCharging ? 10 + runtime.charge * 0.14 : 5;
 
-  const handlePointerPosition = (clientX: number) => {
+  const handlePointerPosition = (clientX: number, clientY: number) => {
     const bounds = battlefieldRef.current?.getBoundingClientRect();
 
     if (!bounds) {
@@ -106,7 +114,9 @@ export default function Battlefield({
     }
 
     const nextX = ((clientX - bounds.left) / bounds.width) * 100;
-    onAim(nextX);
+    const nextY = ((clientY - bounds.top) / bounds.height) * 100;
+
+    onAim(nextX, nextY);
   };
 
   return (
@@ -132,14 +142,14 @@ export default function Battlefield({
             return;
           }
 
-          handlePointerPosition(event.clientX);
+          handlePointerPosition(event.clientX, event.clientY);
         }}
         onPointerDown={(event) => {
           if (!canInteract) {
             return;
           }
 
-          handlePointerPosition(event.clientX);
+          handlePointerPosition(event.clientX, event.clientY);
           onChargeStart();
         }}
         onPointerUp={() => {
@@ -180,6 +190,7 @@ export default function Battlefield({
                 style={{
                   animationDuration: bird.duration,
                   animationDelay: bird.delay,
+                  animationPlayState: isWorldFrozen ? "paused" : "running",
                 }}
               >
                 <div className="relative h-6 w-8">
@@ -211,6 +222,7 @@ export default function Battlefield({
                 style={{
                   animationDuration: bird.duration,
                   animationDelay: bird.delay,
+                  animationPlayState: isWorldFrozen ? "paused" : "running",
                 }}
               >
                 <div className="relative h-7 w-10">
@@ -225,7 +237,7 @@ export default function Battlefield({
           ))}
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-[22%] h-[18%] opacity-90">
+        <div className="pointer-events-none absolute inset-x-0 bottom-[20%] h-[24%] opacity-100">
           {pixelTrees.map((tree, index) => (
             <div
               key={`tree-${index}`}
@@ -237,19 +249,28 @@ export default function Battlefield({
                 transformOrigin: "bottom center",
               }}
             >
-              <div className="relative h-24 w-20">
-                <div className="absolute bottom-0 left-1/2 h-5 w-4 -translate-x-1/2 border-[2px] border-[#2b1508] bg-[#704521]" />
-                <div className="absolute bottom-4 left-1/2 h-5 w-5 -translate-x-1/2 border-[2px] border-[#2b1508] bg-[#5a3418]" />
-                <div className="absolute bottom-8 left-[36%] h-4 w-3 border-[2px] border-[#2b1508] bg-[#6e4320]" />
-                <div className="absolute bottom-8 right-[36%] h-4 w-3 border-[2px] border-[#2b1508] bg-[#6e4320]" />
+              <div className="relative h-28 w-24">
+                <div className="absolute bottom-0 left-1/2 h-14 w-7 -translate-x-1/2 border-[2px] border-[#2b1508] bg-[#6f4420]" />
+                <div className="absolute bottom-0 left-1/2 h-14 w-2 -translate-x-[1.05rem] bg-[#8b5a31]" />
+                <div className="absolute bottom-0 right-1/2 h-14 w-2 translate-x-[1.05rem] bg-[#4d2d14]" />
+                <div className="absolute bottom-10 left-1/2 h-5 w-3 -translate-x-[1.3rem] bg-[#8b5a31]" />
+                <div className="absolute bottom-10 right-1/2 h-5 w-3 translate-x-[1.3rem] bg-[#4d2d14]" />
 
-                <div className="absolute bottom-9 left-2 h-5 w-16 border-[2px] border-[#163111] bg-[#2c5a23]" />
-                <div className="absolute bottom-13 left-0 h-5 w-20 border-[2px] border-[#163111] bg-[#356727]" />
-                <div className="absolute bottom-17 left-1 h-5 w-18 border-[2px] border-[#163111] bg-[#3d742c]" />
-                <div className="absolute bottom-21 left-3 h-5 w-14 border-[2px] border-[#163111] bg-[#4d9336]" />
-                <div className="absolute bottom-[5.6rem] left-5 h-4 w-10 border-[2px] border-[#163111] bg-[#58a33c]" />
-                <div className="absolute bottom-[4.95rem] left-3 h-3 w-4 bg-white/10" />
-                <div className="absolute bottom-[5.35rem] right-4 h-3 w-3 bg-white/10" />
+                <div className="absolute bottom-11 left-0 h-5 w-24 border-[2px] border-[#163111] bg-[#1d4118]" />
+                <div className="absolute bottom-16 left-0 h-5 w-24 border-[2px] border-[#163111] bg-[#244e1c]" />
+                <div className="absolute bottom-21 left-0 h-5 w-24 border-[2px] border-[#163111] bg-[#2d6122]" />
+                <div className="absolute bottom-26 left-1 h-5 w-22 border-[2px] border-[#163111] bg-[#376f28]" />
+                <div className="absolute bottom-31 left-2 h-5 w-20 border-[2px] border-[#163111] bg-[#42842f]" />
+                <div className="absolute bottom-36 left-4 h-5 w-16 border-[2px] border-[#163111] bg-[#58a33c]" />
+                <div className="absolute bottom-16 left-[-0.3rem] h-14 w-5 border-[2px] border-[#163111] bg-[#244e1c]" />
+                <div className="absolute bottom-16 right-[-0.3rem] h-14 w-5 border-[2px] border-[#163111] bg-[#244e1c]" />
+                <div className="absolute bottom-21 left-[0.2rem] h-10 w-5 border-[2px] border-[#163111] bg-[#2f6624]" />
+                <div className="absolute bottom-21 right-[0.2rem] h-10 w-5 border-[2px] border-[#163111] bg-[#2f6624]" />
+                <div className="absolute bottom-26 left-[0.7rem] h-8 w-4 border-[2px] border-[#163111] bg-[#3d7b2d]" />
+                <div className="absolute bottom-26 right-[0.7rem] h-8 w-4 border-[2px] border-[#163111] bg-[#3d7b2d]" />
+                <div className="absolute bottom-18 left-4 h-3 w-5 bg-white/10" />
+                <div className="absolute bottom-24 right-4 h-3 w-5 bg-black/10" />
+                <div className="absolute bottom-33 left-8 h-2 w-4 bg-white/10" />
               </div>
             </div>
           ))}
@@ -272,6 +293,7 @@ export default function Battlefield({
                 style={{
                   animationDuration: monkey.duration,
                   animationDelay: monkey.delay,
+                  animationPlayState: isWorldFrozen ? "paused" : "running",
                 }}
               >
                 <div className="relative h-10 w-10">
@@ -375,6 +397,7 @@ export default function Battlefield({
                 style={{
                   animationDuration: sheep.duration,
                   animationDelay: sheep.delay,
+                  animationPlayState: isWorldFrozen ? "paused" : "running",
                 }}
               >
                 <div className="relative h-9 w-14">
@@ -406,6 +429,7 @@ export default function Battlefield({
                 style={{
                   animationDuration: deer.duration,
                   animationDelay: deer.delay,
+                  animationPlayState: isWorldFrozen ? "paused" : "running",
                 }}
               >
                 <div className="relative h-10 w-16">
@@ -439,6 +463,7 @@ export default function Battlefield({
                 style={{
                   animationDuration: cat.duration,
                   animationDelay: cat.delay,
+                  animationPlayState: isWorldFrozen ? "paused" : "running",
                 }}
               >
                 <div className="relative h-9 w-14">
@@ -466,12 +491,22 @@ export default function Battlefield({
             top: `${sunVisual.y}%`,
             width: `${sunVisual.radius * 2}%`,
             transform: "translate(-50%, -50%)",
+            filter: isWorldFrozen ? "saturate(0.82) brightness(1.08)" : undefined,
           }}
         >
           <div className="absolute inset-[-18%] border-[3px] border-amber-100/20" />
           <div className="absolute inset-[12%] border-[3px] border-white/10" />
           {runtime.sunShieldMs > 0 ? (
-            <div className="absolute inset-[-30%] border-[3px] border-cyan-200/35 animate-ping" />
+            <div
+              className="absolute inset-[-30%] border-[3px] border-cyan-200/35 animate-ping"
+              style={{ animationPlayState: isWorldFrozen ? "paused" : "running" }}
+            />
+          ) : null}
+          {isWorldFrozen ? (
+            <>
+              <div className="absolute inset-[-14%] border-[3px] border-sky-100/45 shadow-[0_0_22px_rgba(180,230,255,0.35)]" />
+              <div className="absolute inset-[18%] bg-sky-100/12" />
+            </>
           ) : null}
           <div className="absolute inset-[24%] bg-white/30 blur-md" />
           <div className="absolute bottom-[18%] left-[18%] h-[18%] w-[24%] bg-[#381500]/45" />
@@ -587,27 +622,44 @@ export default function Battlefield({
           >
             <div
               className={`absolute inset-[-18%] blur-md ${
-                pack.kind === "speed" ? "bg-cyan-300/25" : "bg-fuchsia-300/25"
+                pack.kind === "speed"
+                  ? "bg-cyan-300/25"
+                  : pack.kind === "double"
+                    ? "bg-fuchsia-300/25"
+                    : "bg-sky-200/30"
               }`}
             />
             <div
               className={`relative flex h-8 w-8 items-center justify-center border-[3px] shadow-[0_0_24px_rgba(255,255,255,0.12)] ${
                 pack.kind === "speed"
                   ? "border-cyan-100/55 bg-gradient-to-br from-cyan-100 via-sky-300 to-blue-600"
-                  : "border-fuchsia-100/55 bg-gradient-to-br from-amber-100 via-fuchsia-300 to-violet-700"
+                  : pack.kind === "double"
+                    ? "border-fuchsia-100/55 bg-gradient-to-br from-amber-100 via-fuchsia-300 to-violet-700"
+                    : "border-sky-100/60 bg-gradient-to-br from-white via-sky-200 to-cyan-500"
               }`}
             >
               <div className="absolute inset-[18%] border-[2px] border-white/25" />
-              <div
-                className={`absolute h-[2px] w-4 rounded-full ${
-                  pack.kind === "speed" ? "bg-white" : "bg-amber-50"
-                }`}
-              />
-              <div
-                className={`absolute h-4 w-[2px] rounded-full ${
-                  pack.kind === "speed" ? "bg-white/85" : "bg-amber-50/85"
-                } ${pack.kind === "double" ? "" : "hidden"}`}
-              />
+              {pack.kind === "freeze" ? (
+                <>
+                  <div className="absolute h-[2px] w-4 rounded-full bg-white/95" />
+                  <div className="absolute h-4 w-[2px] rounded-full bg-white/95" />
+                  <div className="absolute h-[2px] w-4 rotate-45 rounded-full bg-sky-50/90" />
+                  <div className="absolute h-[2px] w-4 -rotate-45 rounded-full bg-sky-50/90" />
+                </>
+              ) : (
+                <>
+                  <div
+                    className={`absolute h-[2px] w-4 rounded-full ${
+                      pack.kind === "speed" ? "bg-white" : "bg-amber-50"
+                    }`}
+                  />
+                  <div
+                    className={`absolute h-4 w-[2px] rounded-full ${
+                      pack.kind === "speed" ? "bg-white/85" : "bg-amber-50/85"
+                    } ${pack.kind === "double" ? "" : "hidden"}`}
+                  />
+                </>
+              )}
             </div>
           </div>
         ))}
@@ -615,6 +667,8 @@ export default function Battlefield({
         {runtime.enemyProjectiles.map((projectile) => {
           const monsterSize = projectile.pattern === "pulse" ? 2.8 + projectile.radius * 0.38 : 2.2 + projectile.radius * 0.32;
           const glowSize = monsterSize * (projectile.pattern === "pulse" ? 1.6 : 1.35);
+          const isSplitBurst = projectile.id.includes("clone") && projectile.ageMs < 220;
+          const burstOpacity = Math.max(0.22, 1 - projectile.ageMs / 220);
 
           return (
             <div
@@ -626,6 +680,27 @@ export default function Battlefield({
                 transform: "translate(-50%, -50%)",
               }}
             >
+              {isSplitBurst ? (
+                <div
+                  className="enemy-split-burst absolute left-1/2 top-1/2"
+                  style={{
+                    opacity: burstOpacity,
+                    transform: "translate(-50%, -50%)",
+                  }}
+                >
+                  <div className="enemy-split-ring" />
+                  <div className="enemy-split-core" />
+                  {[0, 45, 90, 135].map((angle) => (
+                    <div
+                      key={`${projectile.id}-burst-${angle}`}
+                      className="enemy-split-shard"
+                      style={{
+                        transform: `translate(-50%, -50%) rotate(${angle}deg)`,
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : null}
               <div
                 className={`absolute blur-sm ${
                   projectile.pattern === "pulse" ? "bg-lime-200/20" : "bg-orange-300/20"
@@ -734,14 +809,23 @@ export default function Battlefield({
           </div>
         ))}
 
+        {isWorldFrozen ? (
+          <>
+            <div className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(170,225,255,0.08),rgba(170,225,255,0.02))]" />
+            <div className="pointer-events-none absolute right-4 top-4 z-[4] border-[3px] border-sky-100/45 bg-slate-950/45 px-3 py-2 font-pixel text-[0.54rem] uppercase tracking-[0.18em] text-sky-100 shadow-[0_0_18px_rgba(165,225,255,0.28)]">
+              冰封世界
+            </div>
+          </>
+        ) : null}
+
         <div className="absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(180deg,rgba(255,119,51,0)_0%,rgba(255,119,51,0.08)_35%,rgba(255,141,54,0.18)_100%)]" />
         <div className="absolute inset-x-[8%] bottom-[8%] h-[3px] bg-gradient-to-r from-transparent via-amber-100/40 to-transparent" />
 
         <div
-          className="battlefield-player absolute bottom-[10%] z-[2] transition-transform duration-75"
+          className="battlefield-player absolute z-[2] transition-transform duration-75"
           style={{
             left: `${runtime.playerX}%`,
-            top: `${PLAYER_Y}%`,
+            top: `${runtime.playerY}%`,
             transform: `translate(-50%, -50%) scale(${runtime.isCharging ? "calc(var(--player-scale) * 1.03)" : "var(--player-scale)"})`,
           }}
         >
@@ -808,16 +892,17 @@ export default function Battlefield({
         <div className="voxel-panel absolute bottom-5 left-5 hidden max-w-sm px-4 py-3 text-xs uppercase tracking-[0.24em] text-stone-300/78 backdrop-blur-sm md:flex md:items-center md:gap-4">
           <span className="inline-flex items-center gap-2">
             <MoveHorizontal className="h-4 w-4" />
-            移动
+            飞行
           </span>
           <span className="inline-flex items-center gap-2">
             <MousePointer2 className="h-4 w-4" />
-            按住蓄力
+            拖动筋斗云
           </span>
           <span className="inline-flex items-center gap-2">
             <Keyboard className="h-4 w-4" />
-            S / 空格发射
+            W / A / D / 方向键
           </span>
+          <span className="font-pixel text-[0.54rem] leading-5 text-amber-100">S / 空格发射</span>
         </div>
 
         <div
@@ -826,7 +911,7 @@ export default function Battlefield({
         >
           <span className="inline-flex items-center gap-1.5">
             <MoveHorizontal className="h-3.5 w-3.5" />
-            拖动移动
+            拖动飞行
           </span>
           <span className="inline-flex items-center gap-1.5">
             <MousePointer2 className="h-3.5 w-3.5" />

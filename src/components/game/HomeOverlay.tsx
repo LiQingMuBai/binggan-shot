@@ -51,9 +51,9 @@ export default function HomeOverlay({
                 <span className="font-pixel text-[0.58rem] uppercase leading-5">操作</span>
               </div>
               <p className="mt-3 text-xs leading-6 text-stone-300/86 sm:text-sm">
-                鼠标或触控左右移动，按住蓄力，松开发射。键盘支持
-                <span className="text-stone-100"> A / D </span>
-                移动，
+                鼠标或触控拖动筋斗云飞行，按住蓄力，松开发射。键盘支持
+                <span className="text-stone-100"> W / A / D / 方向键 </span>
+                飞行，
                 <span className="text-stone-100"> S </span>
                 或空格发射。
               </p>
@@ -65,7 +65,7 @@ export default function HomeOverlay({
                 <span className="font-pixel text-[0.58rem] uppercase leading-5">节奏</span>
               </div>
               <p className="mt-3 text-xs leading-6 text-stone-300/86 sm:text-sm">
-                阿凡提会释放火球和日冕脉冲，阶段越高越密集。打出连续命中可快速滚高分。
+                阿凡提会释放火球和日冕脉冲，阶段越高越密集。掉落的技能包包含疾风、双箭和 5 秒冰封世界。
               </p>
             </div>
 

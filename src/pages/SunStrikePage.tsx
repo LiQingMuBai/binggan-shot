@@ -11,6 +11,7 @@ export default function SunStrikePage() {
   const gameState = useGameStore((state) => state);
   const phase = useGameStore((state) => state.phase);
   const playerX = useGameStore((state) => state.playerX);
+  const playerY = useGameStore((state) => state.playerY);
   const moveStep = useGameStore((state) => (state.speedBoostMs > 0 ? 5.8 : 3.6));
   const hydrateRecord = useGameStore((state) => state.hydrateRecord);
   const tick = useGameStore((state) => state.tick);
@@ -54,12 +55,22 @@ export default function SunStrikePage() {
 
       if (event.code === "KeyA" || event.code === "ArrowLeft") {
         event.preventDefault();
-        aimAt(playerX - moveStep);
+        aimAt(playerX - moveStep, playerY);
       }
 
       if (event.code === "KeyD" || event.code === "ArrowRight") {
         event.preventDefault();
-        aimAt(playerX + moveStep);
+        aimAt(playerX + moveStep, playerY);
+      }
+
+      if (event.code === "KeyW" || event.code === "ArrowUp") {
+        event.preventDefault();
+        aimAt(playerX, playerY - moveStep);
+      }
+
+      if (event.code === "ArrowDown") {
+        event.preventDefault();
+        aimAt(playerX, playerY + moveStep);
       }
 
       if (event.code === "Space" || event.code === "KeyS") {
@@ -86,7 +97,7 @@ export default function SunStrikePage() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [aimAt, moveStep, phase, playerX, startCharge, stopCharge]);
+  }, [aimAt, moveStep, phase, playerX, playerY, startCharge, stopCharge]);
 
   useEffect(() => {
     const syncOrientationHint = () => {

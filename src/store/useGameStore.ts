@@ -21,7 +21,7 @@ interface GameStore extends GameRuntime {
   restartGame: () => void;
   returnHome: () => void;
   tick: (deltaMs: number) => void;
-  aimAt: (x: number) => void;
+  aimAt: (x: number, y?: number) => void;
   startCharge: () => void;
   stopCharge: () => void;
   cancelShotCharge: () => void;
@@ -77,8 +77,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     set(nextRuntime);
   },
-  aimAt: (x) => {
-    set(setPlayerAim(get(), x));
+  aimAt: (x, y) => {
+    set(setPlayerAim(get(), x, y));
   },
   startCharge: () => {
     set(beginCharge(get()));

@@ -15,6 +15,7 @@ export default function HudPanel({ runtime }: HudPanelProps) {
   const bossPercentage = Math.max(0, (runtime.sunHp / runtime.maxSunHp) * 100);
   const speedBoostSeconds = (runtime.speedBoostMs / 1000).toFixed(1);
   const doubleArrowSeconds = (runtime.doubleArrowMs / 1000).toFixed(1);
+  const freezeWorldSeconds = (runtime.freezeWorldMs / 1000).toFixed(1);
 
   return (
     <div
@@ -101,7 +102,7 @@ export default function HudPanel({ runtime }: HudPanelProps) {
               <Radar className="h-3.5 w-3.5" />
               <span className="text-left sm:text-right">{runtime.message}</span>
             </div>
-            {runtime.speedBoostMs > 0 || runtime.doubleArrowMs > 0 ? (
+            {runtime.speedBoostMs > 0 || runtime.doubleArrowMs > 0 || runtime.freezeWorldMs > 0 ? (
               <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
                 {runtime.speedBoostMs > 0 ? (
                   <span className="voxel-chip bg-cyan-100/10 px-3 py-1 font-pixel text-[0.48rem] uppercase leading-5 text-cyan-100">
@@ -111,6 +112,11 @@ export default function HudPanel({ runtime }: HudPanelProps) {
                 {runtime.doubleArrowMs > 0 ? (
                   <span className="voxel-chip bg-fuchsia-100/10 px-3 py-1 font-pixel text-[0.48rem] uppercase leading-5 text-fuchsia-100">
                     双箭 {doubleArrowSeconds}s
+                  </span>
+                ) : null}
+                {runtime.freezeWorldMs > 0 ? (
+                  <span className="voxel-chip bg-sky-100/12 px-3 py-1 font-pixel text-[0.48rem] uppercase leading-5 text-sky-100">
+                    冰封 {freezeWorldSeconds}s
                   </span>
                 ) : null}
               </div>

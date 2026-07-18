@@ -2,7 +2,7 @@ export type GamePhase = "idle" | "playing" | "victory" | "defeat";
 export type SunStage = 1 | 2 | 3;
 export type EnemyPattern = "fireball" | "pulse";
 export type EnemyMonsterKind = "creeper" | "zombie" | "skeleton" | "slime" | "spider";
-export type PowerupKind = "speed" | "double";
+export type PowerupKind = "speed" | "double" | "freeze";
 
 export interface ProjectileState {
   id: string;
@@ -24,6 +24,8 @@ export interface EnemyProjectileState {
   pattern: EnemyPattern;
   monster: EnemyMonsterKind;
   ttlMs: number;
+  ageMs: number;
+  hasCloned: boolean;
   ricochetsLeft: number;
   damage: number;
 }
@@ -69,7 +71,9 @@ export interface LocalRecord {
 export interface GameRuntime extends LocalRecord {
   phase: GamePhase;
   elapsedMs: number;
+  worldElapsedMs: number;
   playerX: number;
+  playerY: number;
   playerHp: number;
   charge: number;
   isCharging: boolean;
@@ -85,6 +89,7 @@ export interface GameRuntime extends LocalRecord {
   scorePopups: ScorePopupState[];
   speedBoostMs: number;
   doubleArrowMs: number;
+  freezeWorldMs: number;
   attackCooldownMs: number;
   score: number;
   combo: number;
@@ -111,7 +116,9 @@ export const PLAYER_RADIUS = 4.4;
 
 const MAX_SUN_HP = 920;
 const CHARGE_PER_MS = 0.082;
-const PROJECTILE_START_Y = 82;
+const BUFF_DURATION_MS = 6200;
+const FREEZE_WORLD_DURATION_MS = 5000;
+const ENEMY_CLONE_DELAY_MS = 1000;
 const DEFAULT_RECORD: LocalRecord = {
   bestScore: 0,
   bestCombo: 0,
@@ -130,6 +137,16 @@ function clamp(value: number, min: number, max: number) {
 
 function round(value: number) {
   return Math.round(value * 100) / 100;
+}
+
+function getPlayerCeilingY(runtime: Pick<GameRuntime, "worldElapsedMs" | "sunStage">) {
+  const sunVisual = getSunVisual(runtime);
+
+  return clamp(round(sunVisual.y + sunVisual.radius + 7.2), 26, PLAYER_Y - 10);
+}
+
+function getProjectileStartY(playerY: number) {
+  return round(Math.max(12, playerY - 7));
 }
 
 export function loadRecord(): LocalRecord {
@@ -179,13 +196,13 @@ export function resolveSunStage(sunHp: number, maxSunHp: number): SunStage {
   return 3;
 }
 
-export function getSunVisual(runtime: Pick<GameRuntime, "elapsedMs" | "sunStage">): SunVisual {
+export function getSunVisual(runtime: Pick<GameRuntime, "worldElapsedMs" | "sunStage">): SunVisual {
   const speed = 0.00078 + runtime.sunStage * 0.00018;
   const amplitude = 12 + runtime.sunStage * 3.5;
 
   return {
-    x: 50 + Math.sin(runtime.elapsedMs * speed) * amplitude,
-    y: 17 + Math.cos(runtime.elapsedMs * 0.0009) * 1.8,
+    x: 50 + Math.sin(runtime.worldElapsedMs * speed) * amplitude,
+    y: 17 + Math.cos(runtime.worldElapsedMs * 0.0009) * 1.8,
     radius: 9.5 - (runtime.sunStage - 1) * 0.7,
   };
 }
@@ -195,7 +212,9 @@ export function createIdleRuntime(record: LocalRecord = DEFAULT_RECORD): GameRun
     ...record,
     phase: "idle",
     elapsedMs: 0,
+    worldElapsedMs: 0,
     playerX: 50,
+    playerY: PLAYER_Y,
     playerHp: 100,
     charge: 0,
     isCharging: false,
@@ -211,6 +230,7 @@ export function createIdleRuntime(record: LocalRecord = DEFAULT_RECORD): GameRun
     scorePopups: [],
     speedBoostMs: 0,
     doubleArrowMs: 0,
+    freezeWorldMs: 0,
     attackCooldownMs: 1200,
     score: 0,
     combo: 0,
@@ -256,10 +276,13 @@ export function cancelCharge(runtime: GameRuntime): GameRuntime {
   };
 }
 
-export function setPlayerAim(runtime: GameRuntime, x: number): GameRuntime {
+export function setPlayerAim(runtime: GameRuntime, x: number, y = runtime.playerY): GameRuntime {
+  const ceilingY = getPlayerCeilingY(runtime);
+
   return {
     ...runtime,
     playerX: clamp(x, 8, 92),
+    playerY: clamp(y, ceilingY, PLAYER_Y),
   };
 }
 
@@ -286,7 +309,7 @@ export function releaseCharge(runtime: GameRuntime): GameRuntime {
   const projectiles = arrowOffsets.map((offset, index) => ({
     id: `shot-${runtime.elapsedMs}-${runtime.shotsFired + index + 1}`,
     x: runtime.playerX + offset,
-    y: PROJECTILE_START_Y,
+    y: getProjectileStartY(runtime.playerY),
     vx: round(offset * 4.8),
     vy: 66 + charge * 0.26,
     damage: round(16 + charge * 0.72),
@@ -344,15 +367,39 @@ function createEnemyProjectile(
     pattern: options.pattern,
     monster: options.monster,
     ttlMs: options.pattern === "pulse" ? 4600 : 4000 + runtime.sunStage * 260,
+    ageMs: 0,
+    hasCloned: false,
     ricochetsLeft: options.pattern === "pulse" ? 8 : 6 + runtime.sunStage,
     damage: options.damage,
+  };
+}
+
+function createClonedEnemyProjectile(
+  runtime: Pick<GameRuntime, "elapsedMs">,
+  projectile: EnemyProjectileState,
+): EnemyProjectileState {
+  const speed = Math.hypot(projectile.vx, projectile.vy);
+  const baseAngle = Math.atan2(projectile.vy, projectile.vx);
+  const cloneOffset = projectile.pattern === "pulse" ? 0.52 : 0.34;
+  const directionSign = Math.sin(runtime.elapsedMs * 0.013 + projectile.x * 0.17 + projectile.y * 0.11) >= 0 ? 1 : -1;
+  const cloneAngle = baseAngle + cloneOffset * directionSign;
+
+  return {
+    ...projectile,
+    id: `${projectile.id}-clone-${runtime.elapsedMs}`,
+    vx: round(Math.cos(cloneAngle) * speed),
+    vy: round(Math.sin(cloneAngle) * speed),
+    ttlMs: Math.max(900, projectile.ttlMs),
+    ageMs: 0,
+    hasCloned: true,
+    ricochetsLeft: Math.max(1, projectile.ricochetsLeft - 1),
   };
 }
 
 function createEnemyVolley(runtime: GameRuntime): EnemyProjectileState[] {
   const sunVisual = getSunVisual(runtime);
   const spreadSeed = Math.sin(runtime.elapsedMs / 190 + runtime.sunStage * 1.7);
-  const baseAngle = Math.atan2(PLAYER_Y - sunVisual.y, runtime.playerX - sunVisual.x);
+  const baseAngle = Math.atan2(runtime.playerY - sunVisual.y, runtime.playerX - sunVisual.x);
   const angleCycle = Math.floor(runtime.elapsedMs / 420) % 4;
   const primaryOffsets = [-0.42, 0.42, -2.08, 2.08];
   const sideOffsets = [1.2, -1.2, 2.34, -2.34];
@@ -483,18 +530,23 @@ function createSkillPack(
   }
 
   const kindRoll = seededUnit(runtime.elapsedMs + runtime.combo * 29 + damage * 11);
-  const kind: PowerupKind = kindRoll > 0.5 ? "double" : "speed";
+  const kind: PowerupKind =
+    kindRoll > 0.66 ? "double" : kindRoll > 0.33 ? "speed" : "freeze";
+  const spawnOffsetX = kind === "double" ? 2.4 : kind === "speed" ? -2.2 : 0;
+  const launchVx =
+    kind === "double" ? 8 : kind === "speed" ? -8 : (runtime.playerX - impactX) * 0.15;
+  const spin = kind === "double" ? 0.9 : kind === "speed" ? -0.7 : 0.42;
 
   return [
     {
       id: `skill-${runtime.elapsedMs}-${kind}`,
-      x: round(impactX + (kind === "double" ? 2.4 : -2.2)),
+      x: round(impactX + spawnOffsetX),
       y: round(impactY + 1.4),
-      vx: round((runtime.playerX - impactX) * 0.08 + (kind === "double" ? 8 : -8)),
+      vx: round((runtime.playerX - impactX) * 0.08 + launchVx),
       vy: round(16 + runtime.sunStage * 4.2),
       radius: 2.8,
       kind,
-      spin: round(kind === "double" ? 0.9 : -0.7),
+      spin: round(spin),
     },
   ];
 }
@@ -506,6 +558,9 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
 
   const stepMs = clamp(deltaMs, 8, 32);
   const elapsedMs = runtime.elapsedMs + stepMs;
+  const frozenStepMs = Math.min(runtime.freezeWorldMs, stepMs);
+  const activeWorldStepMs = stepMs - frozenStepMs;
+  const worldElapsedMs = runtime.worldElapsedMs + activeWorldStepMs;
   const cooldownMs = Math.max(0, runtime.cooldownMs - stepMs);
   const charge = runtime.isCharging
     ? clamp(runtime.charge + stepMs * CHARGE_PER_MS, 0, 100)
@@ -514,14 +569,17 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
   const nextState: GameRuntime = {
     ...runtime,
     elapsedMs,
+    worldElapsedMs,
     cooldownMs,
     charge,
-    sunShieldMs: Math.max(0, runtime.sunShieldMs - stepMs),
+    playerY: clamp(runtime.playerY, getPlayerCeilingY({ worldElapsedMs, sunStage: runtime.sunStage }), PLAYER_Y),
+    sunShieldMs: Math.max(0, runtime.sunShieldMs - activeWorldStepMs),
     impactMs: Math.max(0, runtime.impactMs - stepMs),
     screenShakeMs: Math.max(0, runtime.screenShakeMs - stepMs),
     speedBoostMs: Math.max(0, runtime.speedBoostMs - stepMs),
     doubleArrowMs: Math.max(0, runtime.doubleArrowMs - stepMs),
-    attackCooldownMs: runtime.attackCooldownMs - stepMs,
+    freezeWorldMs: Math.max(0, runtime.freezeWorldMs - stepMs),
+    attackCooldownMs: runtime.attackCooldownMs - activeWorldStepMs,
     accuracy: updateAccuracy(runtime.shotsFired, runtime.shotsHit),
   };
 
@@ -538,8 +596,8 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
   nextState.scorePopups.forEach((popup) => {
     const movedPopup = {
       ...popup,
-      y: popup.y - (popup.kind === "loot" ? 7.2 : 5.4) * (stepMs / 1000),
-      ttlMs: popup.ttlMs - stepMs,
+      y: popup.y - (popup.kind === "loot" ? 7.2 : 5.4) * (activeWorldStepMs / 1000),
+      ttlMs: popup.ttlMs - activeWorldStepMs,
     };
 
     if (movedPopup.ttlMs > 0) {
@@ -593,18 +651,20 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
   nextState.sunDrops.forEach((drop) => {
     const movedDrop = {
       ...drop,
-      x: drop.x + ((drop.vx + (nextState.playerX - drop.x) * 0.2) * stepMs) / 1000,
-      y: drop.y + (drop.vy * stepMs) / 1000,
-      spin: drop.spin + stepMs * 0.014,
+      x: drop.x + ((drop.vx + (nextState.playerX - drop.x) * 0.2) * activeWorldStepMs) / 1000,
+      y: drop.y + (drop.vy * activeWorldStepMs) / 1000,
+      spin: drop.spin + activeWorldStepMs * 0.014,
     };
 
     const collected =
-      getProjectileDistance(movedDrop.x, movedDrop.y, nextState.playerX, PLAYER_Y) <=
+      getProjectileDistance(movedDrop.x, movedDrop.y, nextState.playerX, nextState.playerY) <=
       PLAYER_RADIUS + movedDrop.radius + 2;
 
     if (collected) {
       nextState.score += movedDrop.value;
-      scorePopups.push(createScorePopup(nextState.playerX, PLAYER_Y - 5.4, movedDrop.value, "loot"));
+      scorePopups.push(
+        createScorePopup(nextState.playerX, nextState.playerY - 5.4, movedDrop.value, "loot"),
+      );
       message = `回收熔核碎片 +${movedDrop.value}`;
       return;
     }
@@ -620,24 +680,34 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
   nextState.skillPacks.forEach((pack) => {
     const movedPack = {
       ...pack,
-      x: pack.x + ((pack.vx + (nextState.playerX - pack.x) * 0.18) * stepMs) / 1000,
-      y: pack.y + (pack.vy * stepMs) / 1000,
-      spin: pack.spin + stepMs * 0.01,
+      x: pack.x + ((pack.vx + (nextState.playerX - pack.x) * 0.18) * activeWorldStepMs) / 1000,
+      y: pack.y + (pack.vy * activeWorldStepMs) / 1000,
+      spin: pack.spin + activeWorldStepMs * 0.01,
     };
 
     const collected =
-      getProjectileDistance(movedPack.x, movedPack.y, nextState.playerX, PLAYER_Y) <=
+      getProjectileDistance(movedPack.x, movedPack.y, nextState.playerX, nextState.playerY) <=
       PLAYER_RADIUS + movedPack.radius + 2.4;
 
     if (collected) {
       if (movedPack.kind === "speed") {
-        nextState.speedBoostMs = Math.max(nextState.speedBoostMs, 6200);
-        scorePopups.push(createScorePopup(nextState.playerX, PLAYER_Y - 8, 0, "buff", "疾风提速"));
+        nextState.speedBoostMs = Math.max(nextState.speedBoostMs, BUFF_DURATION_MS);
+        scorePopups.push(
+          createScorePopup(nextState.playerX, nextState.playerY - 8, 0, "buff", "疾风提速"),
+        );
         message = "吃到疾风技能包，移动更快。";
-      } else {
-        nextState.doubleArrowMs = Math.max(nextState.doubleArrowMs, 6200);
-        scorePopups.push(createScorePopup(nextState.playerX, PLAYER_Y - 8, 0, "buff", "双箭齐发"));
+      } else if (movedPack.kind === "double") {
+        nextState.doubleArrowMs = Math.max(nextState.doubleArrowMs, BUFF_DURATION_MS);
+        scorePopups.push(
+          createScorePopup(nextState.playerX, nextState.playerY - 8, 0, "buff", "双箭齐发"),
+        );
         message = "吃到双箭技能包，下一轮改为双箭。";
+      } else {
+        nextState.freezeWorldMs = Math.max(nextState.freezeWorldMs, FREEZE_WORLD_DURATION_MS);
+        scorePopups.push(
+          createScorePopup(nextState.playerX, nextState.playerY - 8, 0, "buff", "冰封世界"),
+        );
+        message = "吃到冰冻技能包，阿凡提的世界被冻结 5 秒。";
       }
       return;
     }
@@ -653,6 +723,7 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
 
   if (resolvedStage !== nextState.sunStage) {
     nextState.sunStage = resolvedStage;
+    nextState.playerY = clamp(nextState.playerY, getPlayerCeilingY(nextState), PLAYER_Y);
     nextState.sunShieldMs = 920;
     nextState.screenShakeMs = 320;
     nextState.impactMs = 260;
@@ -662,7 +733,7 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
     stageChanged = true;
   }
 
-  if (nextState.attackCooldownMs <= 0) {
+  if (activeWorldStepMs > 0 && nextState.attackCooldownMs <= 0) {
     nextState.enemyProjectiles = [
       ...nextState.enemyProjectiles,
       ...createEnemyVolley(nextState),
@@ -678,9 +749,10 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
   nextState.enemyProjectiles.forEach((projectile) => {
     const movedProjectile = {
       ...projectile,
-      x: projectile.x + (projectile.vx * stepMs) / 1000,
-      y: projectile.y + (projectile.vy * stepMs) / 1000,
-      ttlMs: projectile.ttlMs - stepMs,
+      x: projectile.x + (projectile.vx * activeWorldStepMs) / 1000,
+      y: projectile.y + (projectile.vy * activeWorldStepMs) / 1000,
+      ttlMs: projectile.ttlMs - activeWorldStepMs,
+      ageMs: projectile.ageMs + activeWorldStepMs,
     };
 
     if (movedProjectile.ttlMs <= 0) {
@@ -719,7 +791,7 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
     }
 
     const hitPlayer =
-      getProjectileDistance(reflectedProjectile.x, reflectedProjectile.y, nextState.playerX, PLAYER_Y) <=
+      getProjectileDistance(reflectedProjectile.x, reflectedProjectile.y, nextState.playerX, nextState.playerY) <=
       PLAYER_RADIUS + reflectedProjectile.radius + (reflectedProjectile.pattern === "pulse" ? 3.5 : 0);
 
     if (hitPlayer) {
@@ -737,6 +809,23 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
 
     if (ricocheted && reflectedProjectile.pattern === "pulse") {
       message = "怪物在四周反弹，注意它们的回弹路线。";
+    }
+
+    const shouldClone =
+      activeWorldStepMs > 0 &&
+      !reflectedProjectile.hasCloned &&
+      reflectedProjectile.ageMs >= ENEMY_CLONE_DELAY_MS &&
+      reflectedProjectile.ttlMs > 0;
+
+    if (shouldClone) {
+      remainingEnemyProjectiles.push(
+        createClonedEnemyProjectile(nextState, reflectedProjectile),
+      );
+      reflectedProjectile = {
+        ...reflectedProjectile,
+        hasCloned: true,
+      };
+      message = "阿凡提的怪物在 1 秒后完成分裂。";
     }
 
     if (reflectedProjectile.ttlMs > 0) {

@@ -8,6 +8,7 @@ import {
   releaseCharge,
   resolveRecord,
   resolveSunStage,
+  setPlayerAim,
 } from "@/utils/gameLoop";
 
 describe("gameLoop", () => {
@@ -38,6 +39,19 @@ describe("gameLoop", () => {
 
     expect(nextRuntime.projectiles).toHaveLength(2);
     expect(nextRuntime.shotsFired).toBe(2);
+  });
+
+  it("keeps the cloud flight below the sun", () => {
+    const runtime = {
+      ...createPlayingRuntime(),
+      elapsedMs: 1600,
+    };
+
+    const nextRuntime = setPlayerAim(runtime, runtime.playerX, 4);
+    const sunVisual = getSunVisual(runtime);
+
+    expect(nextRuntime.playerY).toBeGreaterThan(sunVisual.y + sunVisual.radius);
+    expect(nextRuntime.playerY).toBeLessThanOrEqual(PLAYER_Y);
   });
 
   it("advances to victory when a projectile finishes the sun", () => {
@@ -109,6 +123,8 @@ describe("gameLoop", () => {
             pattern: "fireball",
             monster: "zombie",
             ttlMs: 3000,
+            ageMs: 0,
+            hasCloned: false,
             ricochetsLeft: 4,
             damage: 18,
           },
@@ -136,6 +152,39 @@ describe("gameLoop", () => {
     expect(nextRuntime.enemyProjectiles.every((projectile) => projectile.monster)).toBe(true);
   });
 
+  it("clones a monster projectile after 1 second", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        elapsedMs: 1000,
+        worldElapsedMs: 1000,
+        enemyProjectiles: [
+          {
+            id: "clone-me",
+            x: 42,
+            y: 36,
+            vx: 26,
+            vy: 8,
+            radius: 2.2,
+            pattern: "fireball",
+            monster: "zombie",
+            ttlMs: 1800,
+            ageMs: 990,
+            hasCloned: false,
+            ricochetsLeft: 5,
+            damage: 12,
+          },
+        ],
+      },
+      16,
+    );
+
+    expect(nextRuntime.enemyProjectiles).toHaveLength(2);
+    expect(nextRuntime.enemyProjectiles.some((projectile) => projectile.id.includes("clone"))).toBe(true);
+    expect(nextRuntime.enemyProjectiles.filter((projectile) => projectile.hasCloned)).toHaveLength(2);
+  });
+
   it("ricochets monster projectiles off the arena walls", () => {
     const runtime = createPlayingRuntime();
     const nextRuntime = advanceGame(
@@ -152,6 +201,8 @@ describe("gameLoop", () => {
             pattern: "fireball",
             monster: "creeper",
             ttlMs: 3000,
+            ageMs: 0,
+            hasCloned: false,
             ricochetsLeft: 4,
             damage: 12,
           },
@@ -241,6 +292,121 @@ describe("gameLoop", () => {
     expect(nextRuntime.doubleArrowMs).toBeGreaterThan(0);
     expect(nextRuntime.skillPacks).toHaveLength(0);
     expect(nextRuntime.scorePopups.some((popup) => popup.kind === "buff" && popup.label === "双箭齐发")).toBe(true);
+  });
+
+  it("collects a freeze pack and freezes the world for 5 seconds", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        skillPacks: [
+          {
+            id: "freeze-pack",
+            x: runtime.playerX,
+            y: PLAYER_Y,
+            vx: 0,
+            vy: 0,
+            radius: 2.8,
+            kind: "freeze",
+            spin: 0,
+          },
+        ],
+      },
+      16,
+    );
+
+    expect(nextRuntime.freezeWorldMs).toBeGreaterThanOrEqual(4980);
+    expect(nextRuntime.skillPacks).toHaveLength(0);
+    expect(nextRuntime.scorePopups.some((popup) => popup.kind === "buff" && popup.label === "冰封世界")).toBe(true);
+  });
+
+  it("freezes world objects but keeps the player arrows moving", () => {
+    const runtime = createPlayingRuntime();
+    const sunVisualBefore = getSunVisual(runtime);
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        freezeWorldMs: 5000,
+        attackCooldownMs: 0,
+        projectiles: [
+          {
+            id: "player-shot",
+            x: 42,
+            y: 70,
+            vx: 6,
+            vy: 40,
+            damage: 18,
+            radius: 1.6,
+          },
+        ],
+        enemyProjectiles: [
+          {
+            id: "frozen-enemy",
+            x: 55,
+            y: 34,
+            vx: 28,
+            vy: 10,
+            radius: 2.4,
+            pattern: "fireball",
+            monster: "zombie",
+            ttlMs: 1800,
+            ageMs: 1200,
+            hasCloned: false,
+            ricochetsLeft: 5,
+            damage: 12,
+          },
+        ],
+        sunDrops: [
+          {
+            id: "frozen-drop",
+            x: 44,
+            y: 50,
+            vx: 20,
+            vy: 14,
+            radius: 2.1,
+            value: 66,
+            spin: 0.4,
+          },
+        ],
+        skillPacks: [
+          {
+            id: "frozen-pack",
+            x: 58,
+            y: 46,
+            vx: -18,
+            vy: 12,
+            radius: 2.8,
+            kind: "speed",
+            spin: 0.3,
+          },
+        ],
+        scorePopups: [
+          {
+            id: "frozen-popup",
+            x: 52,
+            y: 42,
+            value: 20,
+            ttlMs: 760,
+            kind: "impact",
+            label: "+20",
+          },
+        ],
+      },
+      16,
+    );
+    const sunVisualAfter = getSunVisual(nextRuntime);
+
+    expect(nextRuntime.worldElapsedMs).toBe(runtime.worldElapsedMs);
+    expect(sunVisualAfter.x).toBe(sunVisualBefore.x);
+    expect(sunVisualAfter.y).toBe(sunVisualBefore.y);
+    expect(nextRuntime.projectiles[0].y).toBeLessThan(70);
+    expect(nextRuntime.enemyProjectiles[0].x).toBe(55);
+    expect(nextRuntime.enemyProjectiles[0].ageMs).toBe(1200);
+    expect(nextRuntime.enemyProjectiles).toHaveLength(1);
+    expect(nextRuntime.sunDrops[0].x).toBe(44);
+    expect(nextRuntime.skillPacks[0].y).toBe(46);
+    expect(nextRuntime.scorePopups[0].y).toBe(42);
+    expect(nextRuntime.attackCooldownMs).toBe(0);
   });
 
   it("updates local records from a completed run", () => {
