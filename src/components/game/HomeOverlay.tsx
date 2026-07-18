@@ -65,7 +65,7 @@ export default function HomeOverlay({
                 <span className="font-pixel text-[0.58rem] uppercase leading-5">节奏</span>
               </div>
               <p className="mt-3 text-xs leading-6 text-stone-300/86 sm:text-sm">
-                阿凡提会释放火球和日冕脉冲，阶段越高越密集。掉落的技能包包含疾风、双箭、5 秒冰封世界和奥特曼支援。
+                阿凡提会释放火球和日冕脉冲，阶段越高越密集。掉落的技能包包含疾风、双箭、5 秒冰封世界、奥特曼支援，以及孙悟空 10 秒护体。
               </p>
             </div>
 

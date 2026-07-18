@@ -98,6 +98,16 @@ function getUltramanAnchor(runtime: Pick<GameRuntime, "playerX" | "playerY">) {
   };
 }
 
+function getWukongAnchor(runtime: Pick<GameRuntime, "playerX" | "playerY" | "elapsedMs">) {
+  return {
+    x: Math.min(92, Math.max(12, runtime.playerX + 10 + Math.sin(runtime.elapsedMs * 0.008) * 1.4)),
+    y: Math.min(82, Math.max(18, runtime.playerY - 8 + Math.cos(runtime.elapsedMs * 0.01) * 1.1)),
+  };
+}
+
+const WUKONG_GUARD_TOTAL_MS = 10000;
+const WUKONG_ENTRY_DURATION_MS = 520;
+
 export default function Battlefield({
   runtime,
   onAim,
@@ -112,8 +122,15 @@ export default function Battlefield({
   const isSunAngry = runtime.sunStage >= 2;
   const isSunFurious = runtime.sunStage >= 3;
   const ultramanAnchor = getUltramanAnchor(runtime);
+  const wukongAnchor = getWukongAnchor(runtime);
   const isUltramanEntering = runtime.ultramanEntryMs > 0;
   const ultramanEntryProgress = isUltramanEntering ? 1 - runtime.ultramanEntryMs / 960 : 1;
+  const isWukongGuarding = runtime.wukongGuardMs > 0;
+  const wukongGuardProgress = isWukongGuarding ? runtime.wukongGuardMs / WUKONG_GUARD_TOTAL_MS : 0;
+  const isWukongEntering = isWukongGuarding && runtime.wukongGuardMs > WUKONG_GUARD_TOTAL_MS - WUKONG_ENTRY_DURATION_MS;
+  const wukongEntryProgress = isWukongEntering
+    ? Math.min(1, (WUKONG_GUARD_TOTAL_MS - runtime.wukongGuardMs) / WUKONG_ENTRY_DURATION_MS)
+    : 1;
   const shakeOffset = runtime.screenShakeMs > 0 ? Math.sin(runtime.elapsedMs / 18) * 4.5 : 0;
   const flashOpacity = runtime.impactMs > 0 ? Math.min(0.45, runtime.impactMs / 480) : 0;
   const bowPull = runtime.isCharging ? 10 + runtime.charge * 0.14 : 5;
@@ -672,7 +689,9 @@ export default function Battlefield({
                     ? "bg-fuchsia-300/25"
                     : pack.kind === "freeze"
                       ? "bg-sky-200/30"
-                      : "bg-red-300/30"
+                      : pack.kind === "wukong"
+                        ? "bg-amber-300/30"
+                        : "bg-red-300/30"
               }`}
             />
             <div
@@ -683,7 +702,9 @@ export default function Battlefield({
                     ? "border-fuchsia-100/55 bg-gradient-to-br from-amber-100 via-fuchsia-300 to-violet-700"
                     : pack.kind === "freeze"
                       ? "border-sky-100/60 bg-gradient-to-br from-white via-sky-200 to-cyan-500"
-                      : "border-red-100/60 bg-gradient-to-br from-white via-stone-200 to-red-500"
+                      : pack.kind === "wukong"
+                        ? "border-amber-100/60 bg-gradient-to-br from-amber-50 via-amber-300 to-orange-600"
+                        : "border-red-100/60 bg-gradient-to-br from-white via-stone-200 to-red-500"
               }`}
             >
               <div className="absolute inset-[18%] border-[2px] border-white/25" />
@@ -693,6 +714,15 @@ export default function Battlefield({
                   <div className="absolute h-4 w-[2px] rounded-full bg-white/95" />
                   <div className="absolute h-[2px] w-4 rotate-45 rounded-full bg-sky-50/90" />
                   <div className="absolute h-[2px] w-4 -rotate-45 rounded-full bg-sky-50/90" />
+                </>
+              ) : pack.kind === "wukong" ? (
+                <>
+                  <div className="absolute top-[16%] h-2.5 w-2.5 border-[2px] border-amber-100/70 bg-[#f5d2a1]" />
+                  <div className="absolute top-[36%] h-3.5 w-4 border-[2px] border-[#8a2f1c] bg-[#cf4930]" />
+                  <div className="absolute bottom-[18%] left-[24%] h-[2px] w-5 rotate-[62deg] bg-[#f5d26f]" />
+                  <div className="absolute bottom-[14%] left-[18%] h-[2px] w-6 rotate-[62deg] bg-[#8b5d17]" />
+                  <div className="absolute top-[42%] left-[18%] h-[2px] w-2 rotate-[16deg] bg-amber-50/90" />
+                  <div className="absolute top-[42%] right-[18%] h-[2px] w-2 -rotate-[16deg] bg-amber-50/90" />
                 </>
               ) : pack.kind === "ultraman" ? (
                 <>
@@ -891,8 +921,10 @@ export default function Battlefield({
         })}
 
         {runtime.enemyBursts.map((burst) => {
-          const burstTone =
-            burst.monster === "creeper"
+          const isGuardBurst = burst.variant === "wukong-guard";
+          const burstTone = isGuardBurst
+            ? { glow: "rgba(255, 211, 94, 0.9)", core: "#fff2a6", shard: "#d79418" }
+            : burst.monster === "creeper"
               ? { glow: "rgba(112, 232, 88, 0.7)", core: "#9af77f", shard: "#4d9c36" }
               : burst.monster === "skeleton"
                 ? { glow: "rgba(228, 238, 249, 0.78)", core: "#f8fbff", shard: "#aeb9c8" }
@@ -901,12 +933,12 @@ export default function Battlefield({
                   : burst.monster === "spider"
                     ? { glow: "rgba(255, 98, 142, 0.68)", core: "#ffbfd2", shard: "#8a365f" }
                     : { glow: "rgba(142, 198, 120, 0.68)", core: "#d7efcc", shard: "#58824f" };
-          const burstOpacity = burst.ttlMs / 280;
+          const burstOpacity = burst.ttlMs / (isGuardBurst ? 360 : 280);
 
           return (
             <div
               key={burst.id}
-              className="enemy-kill-burst absolute left-0 top-0"
+              className={`enemy-kill-burst absolute left-0 top-0 ${isGuardBurst ? "enemy-kill-burst-guard" : ""}`}
               style={{
                 left: `${burst.x}%`,
                 top: `${burst.y}%`,
@@ -921,6 +953,12 @@ export default function Battlefield({
                   boxShadow: `0 0 14px ${burstTone.glow}, 0 0 28px ${burstTone.glow}`,
                 }}
               />
+              {isGuardBurst ? (
+                <>
+                  <div className="enemy-guard-flash" />
+                  <div className="enemy-guard-cross" />
+                </>
+              ) : null}
               <div
                 className="enemy-kill-core"
                 style={{
@@ -1048,6 +1086,59 @@ export default function Battlefield({
             <div className="absolute right-[-0.7rem] top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-cyan-100/90 blur-[3px]" />
             <div className="absolute right-[-0.35rem] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white" />
           </div>
+        ) : null}
+
+        {isWukongGuarding ? (
+          <>
+            <div
+              className="pointer-events-none absolute z-[3]"
+              style={{
+                left: `${runtime.playerX}%`,
+                top: `${runtime.playerY}%`,
+                transform: `translate(-50%, -50%) scale(${1 + (1 - wukongGuardProgress) * 0.08})`,
+                opacity: 0.78 + wukongGuardProgress * 0.22,
+              }}
+            >
+              <div className="wukong-guard-ring h-[7.2rem] w-[7.2rem]" />
+              <div className="wukong-guard-ring-inner absolute left-1/2 top-1/2 h-[5.4rem] w-[5.4rem] -translate-x-1/2 -translate-y-1/2" />
+              <div className="wukong-guard-flare absolute left-1/2 top-1/2 h-[8rem] w-[8rem] -translate-x-1/2 -translate-y-1/2" />
+            </div>
+            <div
+              className="absolute z-[3]"
+              style={{
+                left: `${wukongAnchor.x}%`,
+                top: `${wukongAnchor.y}%`,
+                transform: `translate(-50%, -50%) scale(var(--player-scale)) translateY(${
+                  isWukongEntering ? `${(1 - wukongEntryProgress) * -4.8}rem` : "0rem"
+                })`,
+              }}
+            >
+              <div className="absolute -bottom-1 left-1/2 h-3 w-12 -translate-x-1/2 bg-amber-300/20 blur-md" />
+              {isWukongEntering ? (
+                <>
+                  <div className="wukong-entry-column absolute left-1/2 top-1/2 h-[13.6rem] w-[4.8rem] -translate-x-1/2 -translate-y-[74%]" />
+                  <div className="wukong-entry-ring absolute left-1/2 top-[87%] h-14 w-[4.9rem] -translate-x-1/2 -translate-y-1/2" />
+                </>
+              ) : null}
+              <div className={`relative h-[5.9rem] w-[5.4rem] ${isWukongEntering ? "wukong-entry-body" : ""}`}>
+                <div className="absolute left-1/2 top-[5%] h-4 w-4 -translate-x-1/2 border-[2px] border-amber-100/65 bg-[#f2d09e]">
+                  <div className="absolute left-[20%] top-[34%] h-[2px] w-[2px] bg-[#4e2315]" />
+                  <div className="absolute right-[20%] top-[34%] h-[2px] w-[2px] bg-[#4e2315]" />
+                  <div className="absolute left-1/2 top-[-0.34rem] h-2.5 w-3 -translate-x-1/2 bg-[#d5a24c]" />
+                </div>
+                <div className="absolute left-1/2 top-[22%] h-9 w-9 -translate-x-1/2 rounded-full bg-amber-200/18 blur-md" />
+                <div className="absolute left-1/2 top-[25%] h-7 w-7 -translate-x-1/2 border-[3px] border-[#892e1c] bg-gradient-to-b from-[#f0bc5f] via-[#da5d35] to-[#9b2f1c]" />
+                <div className="absolute left-[16%] top-[36%] h-2 w-6 origin-right bg-[#d9b48a]" style={{ transform: "rotate(-28deg)" }} />
+                <div className="absolute right-[14%] top-[36%] h-2 w-6 origin-left bg-[#d9b48a]" style={{ transform: "rotate(28deg)" }} />
+                <div className="absolute left-[26%] top-[54%] h-8 w-2.5 bg-[#cf4930]" />
+                <div className="absolute right-[26%] top-[54%] h-8 w-2.5 bg-[#cf4930]" />
+                <div className="wukong-staff absolute left-1/2 top-1/2 h-[6.8rem] w-[0.42rem] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-b from-[#f5d26f] via-[#c58d1c] to-[#8a5a14]">
+                  <div className="absolute left-1/2 top-[-0.1rem] h-2 w-[0.7rem] -translate-x-1/2 bg-[#f9e49f]" />
+                  <div className="absolute left-1/2 bottom-[-0.1rem] h-2 w-[0.7rem] -translate-x-1/2 bg-[#f9e49f]" />
+                </div>
+              </div>
+            </div>
+          </>
         ) : null}
 
         <div className="absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(180deg,rgba(255,119,51,0)_0%,rgba(255,119,51,0.08)_35%,rgba(255,141,54,0.18)_100%)]" />
