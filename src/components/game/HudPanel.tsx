@@ -17,6 +17,7 @@ export default function HudPanel({ runtime }: HudPanelProps) {
   const doubleArrowSeconds = (runtime.doubleArrowMs / 1000).toFixed(1);
   const freezeWorldSeconds = (runtime.freezeWorldMs / 1000).toFixed(1);
   const ultramanAssistSeconds = (runtime.ultramanAssistMs / 1000).toFixed(1);
+  const wukongGuardSeconds = (runtime.wukongGuardMs / 1000).toFixed(1);
 
   return (
     <div
@@ -106,7 +107,8 @@ export default function HudPanel({ runtime }: HudPanelProps) {
             {runtime.speedBoostMs > 0 ||
             runtime.doubleArrowMs > 0 ||
             runtime.freezeWorldMs > 0 ||
-            runtime.ultramanAssistMs > 0 ? (
+            runtime.ultramanAssistMs > 0 ||
+            runtime.wukongGuardMs > 0 ? (
               <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
                 {runtime.speedBoostMs > 0 ? (
                   <span className="voxel-chip bg-cyan-100/10 px-3 py-1 font-pixel text-[0.48rem] uppercase leading-5 text-cyan-100">
@@ -126,6 +128,11 @@ export default function HudPanel({ runtime }: HudPanelProps) {
                 {runtime.ultramanAssistMs > 0 ? (
                   <span className="voxel-chip bg-red-100/12 px-3 py-1 font-pixel text-[0.48rem] uppercase leading-5 text-red-100">
                     奥特曼 {ultramanAssistSeconds}s
+                  </span>
+                ) : null}
+                {runtime.wukongGuardMs > 0 ? (
+                  <span className="voxel-chip bg-amber-100/12 px-3 py-1 font-pixel text-[0.48rem] uppercase leading-5 text-amber-100">
+                    悟空护体 {wukongGuardSeconds}s
                   </span>
                 ) : null}
               </div>

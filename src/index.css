@@ -329,6 +329,49 @@ button {
   }
 }
 
+@keyframes wukongGuardRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wukongGuardRotateReverse {
+  0% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+}
+
+@keyframes wukongGuardPulse {
+  0%,
+  100% {
+    opacity: 0.38;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
+@keyframes wukongStaffSpin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
 @keyframes ultramanEntryRing {
   0% {
     opacity: 0.95;
@@ -352,6 +395,68 @@ button {
   100% {
     opacity: 1;
     filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes wukongEntryColumn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scaleY(1.4);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scaleY(0.78);
+  }
+}
+
+@keyframes wukongEntryRing {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.9);
+  }
+}
+
+@keyframes wukongEntryBody {
+  0% {
+    opacity: 0.24;
+    filter: brightness(2.2) saturate(0.9);
+  }
+  50% {
+    opacity: 0.82;
+    filter: brightness(1.75) saturate(1.12);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes enemyGuardFlash {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.28);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.65);
+  }
+}
+
+@keyframes enemyGuardCross {
+  0% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) rotate(45deg) scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(45deg) scale(1.45);
   }
 }
 
@@ -587,6 +692,11 @@ button {
   pointer-events: none;
 }
 
+.enemy-kill-burst-guard {
+  width: 7.8rem;
+  height: 7.8rem;
+}
+
 .enemy-kill-ring {
   position: absolute;
   left: 50%;
@@ -598,6 +708,13 @@ button {
   animation: enemySplitRing 280ms ease-out forwards;
 }
 
+.enemy-kill-burst-guard .enemy-kill-ring {
+  width: 4.9rem;
+  height: 4.9rem;
+  border-width: 5px;
+  animation-duration: 360ms;
+}
+
 .enemy-kill-core {
   position: absolute;
   left: 50%;
@@ -605,6 +722,11 @@ button {
   width: 0.9rem;
   height: 0.9rem;
   transform: translate(-50%, -50%);
+}
+
+.enemy-kill-burst-guard .enemy-kill-core {
+  width: 1.2rem;
+  height: 1.2rem;
 }
 
 .enemy-kill-shard {
@@ -616,6 +738,12 @@ button {
   animation: enemySplitShard 280ms linear forwards;
 }
 
+.enemy-kill-burst-guard .enemy-kill-shard {
+  width: 6.2rem;
+  height: 6.2rem;
+  animation-duration: 360ms;
+}
+
 .enemy-kill-shard-bar {
   position: absolute;
   left: 50%;
@@ -623,6 +751,34 @@ button {
   width: 3px;
   height: 100%;
   transform: translate(-50%, -50%);
+}
+
+.enemy-guard-flash,
+.enemy-guard-cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+
+.enemy-guard-flash {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 251, 214, 0.92) 0 20%, rgba(255, 220, 118, 0.55) 36%, rgba(255, 186, 43, 0.12) 62%, transparent 78%);
+  box-shadow:
+    0 0 24px rgba(255, 216, 110, 0.92),
+    0 0 44px rgba(229, 157, 19, 0.62);
+  animation: enemyGuardFlash 360ms ease-out forwards;
+}
+
+.enemy-guard-cross {
+  width: 6.8rem;
+  height: 6.8rem;
+  background:
+    linear-gradient(90deg, transparent 0 44%, rgba(255, 248, 201, 0.96) 44% 56%, transparent 56%),
+    linear-gradient(180deg, transparent 0 44%, rgba(255, 209, 90, 0.92) 44% 56%, transparent 56%);
+  filter: drop-shadow(0 0 12px rgba(255, 220, 118, 0.95));
+  animation: enemyGuardCross 360ms ease-out forwards;
 }
 
 .ultraman-entry-column {
@@ -644,6 +800,65 @@ button {
 
 .ultraman-entry-body {
   animation: ultramanEntryBody 960ms ease-out forwards;
+}
+
+.wukong-entry-column {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 247, 191, 0.95) 16%, rgba(255, 217, 102, 0.72) 58%, rgba(255, 255, 255, 0) 100%);
+  box-shadow:
+    0 0 26px rgba(255, 219, 118, 0.88),
+    0 0 58px rgba(214, 141, 13, 0.42);
+  animation: wukongEntryColumn 520ms ease-out forwards;
+}
+
+.wukong-entry-ring {
+  border: 4px solid rgba(255, 236, 163, 0.92);
+  box-shadow:
+    0 0 24px rgba(255, 220, 102, 0.86),
+    inset 0 0 18px rgba(255, 251, 216, 0.28);
+  animation: wukongEntryRing 520ms ease-out forwards;
+}
+
+.wukong-entry-body {
+  animation: wukongEntryBody 520ms ease-out forwards;
+}
+
+.wukong-guard-ring,
+.wukong-guard-ring-inner {
+  border-radius: 999px;
+  border: 4px solid rgba(247, 216, 112, 0.9);
+  box-shadow:
+    0 0 16px rgba(255, 209, 94, 0.55),
+    inset 0 0 14px rgba(255, 250, 197, 0.16);
+  background:
+    radial-gradient(circle, rgba(255, 244, 204, 0.12) 0 48%, rgba(255, 210, 85, 0.08) 48% 68%, transparent 68%),
+    linear-gradient(90deg, rgba(255, 244, 204, 0.18), transparent 34% 66%, rgba(255, 204, 86, 0.18)),
+    linear-gradient(180deg, rgba(255, 244, 204, 0.18), transparent 34% 66%, rgba(255, 204, 86, 0.18));
+}
+
+.wukong-guard-ring {
+  animation: wukongGuardRotate 900ms linear infinite;
+}
+
+.wukong-guard-ring-inner {
+  border-width: 2px;
+  opacity: 0.82;
+  animation: wukongGuardRotateReverse 720ms linear infinite;
+}
+
+.wukong-guard-flare {
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 241, 182, 0.22), rgba(255, 209, 94, 0.06) 55%, transparent 72%);
+  filter: blur(10px);
+  animation: wukongGuardPulse 540ms ease-in-out infinite;
+}
+
+.wukong-staff {
+  transform-origin: center;
+  animation: wukongStaffSpin 520ms linear infinite;
+  box-shadow:
+    0 0 12px rgba(255, 216, 102, 0.5),
+    0 0 22px rgba(201, 138, 24, 0.28);
 }
 
 .battlefield-stage {

@@ -2,7 +2,7 @@ export type GamePhase = "idle" | "playing" | "victory" | "defeat";
 export type SunStage = 1 | 2 | 3;
 export type EnemyPattern = "fireball" | "pulse" | "uv";
 export type EnemyMonsterKind = "creeper" | "zombie" | "skeleton" | "slime" | "spider";
-export type PowerupKind = "speed" | "double" | "freeze" | "ultraman";
+export type PowerupKind = "speed" | "double" | "freeze" | "ultraman" | "wukong";
 
 export interface ProjectileState {
   id: string;
@@ -36,6 +36,7 @@ export interface EnemyBurstState {
   y: number;
   ttlMs: number;
   monster: EnemyMonsterKind;
+  variant: "enemy" | "wukong-guard";
 }
 
 export interface SunDropState {
@@ -108,6 +109,7 @@ export interface GameRuntime extends LocalRecord {
   doubleArrowMs: number;
   freezeWorldMs: number;
   ultramanAssistMs: number;
+  wukongGuardMs: number;
   ultramanEntryMs: number;
   ultramanShotCooldownMs: number;
   ultramanBeam: UltramanBeamState | null;
@@ -143,6 +145,8 @@ const ENEMY_CLONE_DELAY_MS = 1000;
 const ULTRAMAN_ASSIST_DURATION_MS = 7800;
 const ULTRAMAN_SHOT_INTERVAL_MS = 360;
 const ULTRAMAN_ENTRY_DURATION_MS = 960;
+const WUKONG_GUARD_DURATION_MS = 10000;
+const WUKONG_GUARD_RADIUS = PLAYER_RADIUS + 6.8;
 const DEFAULT_RECORD: LocalRecord = {
   bestScore: 0,
   bestCombo: 0,
@@ -284,6 +288,7 @@ export function createIdleRuntime(record: LocalRecord = DEFAULT_RECORD): GameRun
     doubleArrowMs: 0,
     freezeWorldMs: 0,
     ultramanAssistMs: 0,
+    wukongGuardMs: 0,
     ultramanEntryMs: 0,
     ultramanShotCooldownMs: 0,
     ultramanBeam: null,
@@ -606,9 +611,17 @@ function createSkillPack(
 
   const kindRoll = seededUnit(runtime.elapsedMs + runtime.combo * 29 + damage * 11);
   const kind: PowerupKind =
-    kindRoll > 0.48 ? "ultraman" : kindRoll > 0.32 ? "double" : kindRoll > 0.16 ? "speed" : "freeze";
+    kindRoll > 0.46
+      ? "wukong"
+      : kindRoll > 0.32
+        ? "ultraman"
+        : kindRoll > 0.2
+          ? "double"
+          : kindRoll > 0.1
+            ? "speed"
+            : "freeze";
   const spawnOffsetX =
-    kind === "double" ? 2.4 : kind === "speed" ? -2.2 : kind === "ultraman" ? 1.2 : 0;
+    kind === "double" ? 2.4 : kind === "speed" ? -2.2 : kind === "ultraman" ? 1.2 : kind === "wukong" ? -1.2 : 0;
   const launchVx =
     kind === "double"
       ? 8
@@ -616,8 +629,11 @@ function createSkillPack(
         ? -8
         : kind === "ultraman"
           ? 4.5
-          : (runtime.playerX - impactX) * 0.15;
-  const spin = kind === "double" ? 0.9 : kind === "speed" ? -0.7 : kind === "ultraman" ? 0.22 : 0.42;
+          : kind === "wukong"
+            ? -4.2
+            : (runtime.playerX - impactX) * 0.15;
+  const spin =
+    kind === "double" ? 0.9 : kind === "speed" ? -0.7 : kind === "ultraman" ? 0.22 : kind === "wukong" ? 0.6 : 0.42;
 
   return [
     {
@@ -662,6 +678,7 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
     doubleArrowMs: Math.max(0, runtime.doubleArrowMs - stepMs),
     freezeWorldMs: Math.max(0, runtime.freezeWorldMs - stepMs),
     ultramanAssistMs: Math.max(0, runtime.ultramanAssistMs - stepMs),
+    wukongGuardMs: Math.max(0, runtime.wukongGuardMs - stepMs),
     ultramanEntryMs: Math.max(0, runtime.ultramanEntryMs - activeWorldStepMs),
     ultramanShotCooldownMs: Math.max(0, runtime.ultramanShotCooldownMs - activeWorldStepMs),
     ultramanBeam:
@@ -737,6 +754,7 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
           y: destroyedEnemyProjectile.y,
           ttlMs: 280,
           monster: destroyedEnemyProjectile.monster,
+          variant: "enemy",
         });
         scorePopups.push(
           createScorePopup(
@@ -852,6 +870,12 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
           createScorePopup(nextState.playerX, nextState.playerY - 8, 0, "buff", "奥特曼支援"),
         );
         message = "吃到奥特曼技能包，奥特曼降临战场支援。";
+      } else if (movedPack.kind === "wukong") {
+        nextState.wukongGuardMs = Math.max(nextState.wukongGuardMs, WUKONG_GUARD_DURATION_MS);
+        scorePopups.push(
+          createScorePopup(nextState.playerX, nextState.playerY - 8, 0, "buff", "悟空护体"),
+        );
+        message = "吃到孙悟空技能包，金箍棒护罩守住傻猫饼干 10 秒。";
       } else {
         nextState.freezeWorldMs = Math.max(nextState.freezeWorldMs, FREEZE_WORLD_DURATION_MS);
         scorePopups.push(
@@ -993,6 +1017,27 @@ export function advanceGame(runtime: GameRuntime, deltaMs: number): GameRuntime 
     const hitPlayer =
       getProjectileDistance(reflectedProjectile.x, reflectedProjectile.y, nextState.playerX, nextState.playerY) <=
       PLAYER_RADIUS + reflectedProjectile.radius + (reflectedProjectile.pattern === "pulse" ? 3.5 : 0);
+
+    const blockedByWukong =
+      nextState.wukongGuardMs > 0 &&
+      getProjectileDistance(reflectedProjectile.x, reflectedProjectile.y, nextState.playerX, nextState.playerY) <=
+        WUKONG_GUARD_RADIUS + reflectedProjectile.radius + (reflectedProjectile.pattern === "pulse" ? 1.4 : 0);
+
+    if (blockedByWukong) {
+      enemyBursts.push({
+        id: `enemy-burst-guard-${reflectedProjectile.id}-${elapsedMs}`,
+        x: reflectedProjectile.x,
+        y: reflectedProjectile.y,
+        ttlMs: 360,
+        monster: reflectedProjectile.monster,
+        variant: "wukong-guard",
+      });
+      scorePopups.push(
+        createScorePopup(reflectedProjectile.x, reflectedProjectile.y, 0, "buff", "金箍格挡"),
+      );
+      message = "孙悟空挥动金箍棒，360 度护罩震碎来袭怪物。";
+      return;
+    }
 
     if (hitPlayer) {
       playerHp = Math.max(0, playerHp - reflectedProjectile.damage);

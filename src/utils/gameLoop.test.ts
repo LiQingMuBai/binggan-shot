@@ -437,6 +437,32 @@ describe("gameLoop", () => {
     expect(nextRuntime.scorePopups.some((popup) => popup.kind === "buff" && popup.label === "奥特曼支援")).toBe(true);
   });
 
+  it("collects a wukong pack and starts the 10-second guard shield", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        skillPacks: [
+          {
+            id: "wukong-pack",
+            x: runtime.playerX,
+            y: PLAYER_Y,
+            vx: 0,
+            vy: 0,
+            radius: 2.8,
+            kind: "wukong",
+            spin: 0,
+          },
+        ],
+      },
+      16,
+    );
+
+    expect(nextRuntime.wukongGuardMs).toBeGreaterThanOrEqual(9980);
+    expect(nextRuntime.skillPacks).toHaveLength(0);
+    expect(nextRuntime.scorePopups.some((popup) => popup.kind === "buff" && popup.label === "悟空护体")).toBe(true);
+  });
+
   it("lets ultraman prioritize monster projectiles before attacking the sun", () => {
     const runtime = createPlayingRuntime();
     const nextRuntime = advanceGame(
@@ -580,6 +606,40 @@ describe("gameLoop", () => {
     expect(nextRuntime.skillPacks[0].y).toBe(46);
     expect(nextRuntime.scorePopups[0].y).toBe(42);
     expect(nextRuntime.attackCooldownMs).toBe(0);
+  });
+
+  it("lets the wukong shield block enemy projectiles around the player", () => {
+    const runtime = createPlayingRuntime();
+    const nextRuntime = advanceGame(
+      {
+        ...runtime,
+        wukongGuardMs: 10000,
+        enemyProjectiles: [
+          {
+            id: "shield-hit",
+            x: runtime.playerX + 2,
+            y: runtime.playerY - 2,
+            vx: 0,
+            vy: 0,
+            radius: 2.4,
+            pattern: "uv",
+            monster: "skeleton",
+            ttlMs: 1800,
+            ageMs: 0,
+            hasCloned: false,
+            ricochetsLeft: 5,
+            damage: 14,
+          },
+        ],
+      },
+      16,
+    );
+
+    expect(nextRuntime.playerHp).toBe(100);
+    expect(nextRuntime.enemyProjectiles).toHaveLength(0);
+    expect(nextRuntime.enemyBursts).toHaveLength(1);
+    expect(nextRuntime.enemyBursts[0].variant).toBe("wukong-guard");
+    expect(nextRuntime.scorePopups.some((popup) => popup.label === "金箍格挡")).toBe(true);
   });
 
   it("updates local records from a completed run", () => {
